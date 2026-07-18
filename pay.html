@@ -687,20 +687,54 @@
     }
 
     document
-      .getElementById("refreshButton")
-      .addEventListener(
-        "click",
-        loadPay
-      );
+  .getElementById("refreshButton")
+  .addEventListener("click", async function () {
+    try {
+      if (!driver) {
+        const validDriver = await verifyDriver();
 
-    (async function start() {
-      const validDriver =
-        await verifyDriver();
-
-      if (validDriver) {
-        await loadPay();
+        if (!validDriver) return;
       }
-    })();
+
+      await loadPay();
+    } catch (error) {
+      payJobs.innerHTML = `
+        <div class="message">
+          ${escapeHtml(
+            error.message ||
+            "Unable to refresh driver pay."
+          )}
+        </div>
+      `;
+    }
+  });
+
+(async function start() {
+  try {
+    const validDriver = await verifyDriver();
+
+    if (!validDriver) {
+      payJobs.innerHTML = `
+        <div class="message">
+          Driver account could not be verified.
+        </div>
+      `;
+
+      return;
+    }
+
+    await loadPay();
+  } catch (error) {
+    payJobs.innerHTML = `
+      <div class="message">
+        ${escapeHtml(
+          error.message ||
+          "Unable to load driver pay."
+        )}
+      </div>
+    `;
+  }
+})();
   </script>
 
   <script src="/menu.js"></script>
