@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1"
+  >
+
+  <title>MG Express Driver Pay</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --dark-green: #064f3b;
+      --green: #087455;
+      --light-green: #e7f5ef;
+      --coral: #ff665c;
+      --background: #f3f8f6;
+      --white: #ffffff;
+      --ink: #17221e;
+      --muted: #68756f;
+      --line: #dfe8e4;
+      --danger: #a32d2d;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--background);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--dark-green);
+      color: white;
+      padding: 18px 20px;
+    }
+
+    .topbar-inner {
+      width: min(850px, 100%);
+      margin: auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      font-size: 23px;
+      font-weight: 900;
+      line-height: 1.08;
+    }
+
+    .brand span {
+      color: var(--coral);
+    }
+
+    .driver-email {
+      margin-top: 6px;
+      font-size: 13px;
+      opacity: .82;
+      overflow-wrap: anywhere;
+    }
+
+    .container {
+      width: min(850px, 100%);
+      margin: auto;
+      padding: 30px 18px 60px;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      margin: 0 0 25px;
+      font-size: 43px;
+      line-height: 1.05;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 29px;
+    }
+
+    .pay-summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 15px;
+      margin-bottom: 28px;
+    }
+
+    .summary-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 21px;
+      padding: 23px;
+      min-height: 155px;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, .05);
+    }
+
+    .summary-number {
+      color: var(--green);
+      font-size: 38px;
+      font-weight: 900;
+    }
+
+    .summary-label {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 18px;
+    }
+
+    .week-dates {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .panel {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 22px;
+      box-shadow: 0 9px 28px rgba(0, 0, 0, .05);
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .refresh-button {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      padding: 13px 16px;
+      background: white;
+      color: var(--dark-green);
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .pay-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .pay-job {
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      padding: 18px;
+      background: #fbfdfc;
+    }
+
+    .pay-job-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: flex-start;
+    }
+
+    .job-number {
+      color: var(--dark-green);
+      font-size: 20px;
+      font-weight: 900;
+    }
+
+    .job-customer {
+      margin-top: 5px;
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .job-date {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .job-pay {
+      color: var(--green);
+      font-size: 23px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .route {
+      margin-top: 14px;
+      padding: 14px;
+      border-radius: 13px;
+      background: var(--light-green);
+      color: var(--dark-green);
+      line-height: 1.45;
+    }
+
+    .route-arrow {
+      margin: 7px 0;
+      font-size: 19px;
+      font-weight: 900;
+    }
+
+    .empty
