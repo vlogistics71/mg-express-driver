@@ -413,7 +413,7 @@
       return new Date(
         job.completed_at ||
         job.delivery_photo_uploaded_at ||
-        job.updated_at ||
+    ||
         job.created_at
       );
     }
@@ -660,7 +660,7 @@
           assigned_driver_id,
           completed_at,
           delivery_photo_uploaded_at,
-          updated_at,
+  
           created_at
         `)
         .eq(
