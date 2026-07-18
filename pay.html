@@ -635,62 +635,55 @@
     }
 
     async function loadPay() {
-      payJobs.innerHTML = `
-        <div class="empty">
-          Loading this week’s completed jobs…
-        </div>
-      `;
+  payJobs.innerHTML = `
+    <div class="empty">
+      Loading this week's completed jobs...
+    </div>
+  `;
 
-      const weekStart =
-        startOfCurrentWeek().toISOString();
+  try {
+    const result = await client
+      .from("quotes")
+      .select(`
+        id,
+        job_number,
+        customer_name,
+        pickup_address,
+        delivery_address,
+        driver_pay,
+        status,
+        assigned_driver_id,
+        delivery_photo_uploaded_at,
+        created_at
+      `)
+      .eq("assigned_driver_id", driver.id)
+      .eq("status", "delivered")
+      .order("created_at", { ascending: false });
 
-      const weekEnd =
-        endOfCurrentWeek().toISOString();
+    if (result.error) throw result.error;
 
-      const result = await client
-        .from("quotes")
-        .select(`
-          id,
-          job_number,
-          customer_name,
-          pickup_address,
-          delivery_address,
-          driver_pay,
-          status,
-          assigned_driver_id,
-          completed_at,
-          delivery_photo_uploaded_at,
-  
-          created_at
-        `)
-        .eq(
-          "assigned_driver_id",
-          driver.id
-        )
-        .eq("status", "delivered")
-        .gte("completed_at", weekStart)
-        .lt("completed_at", weekEnd)
-        .order(
-          "completed_at",
-          {
-            ascending: false
-          }
-        );
+    const weekStart = startOfCurrentWeek();
+    const weekEnd = endOfCurrentWeek();
 
-      if (result.error) {
-        payJobs.innerHTML = `
-          <div class="message">
-            ${escapeHtml(result.error.message)}
-          </div>
-        `;
+    weeklyJobs = (result.data || []).filter(job => {
+      const completed = jobCompletedDate(job);
 
-        return;
-      }
+      return (
+        !isNaN(completed.getTime()) &&
+        completed >= weekStart &&
+        completed < weekEnd
+      );
+    });
 
-      weeklyJobs =
-        result.data || [];
+    renderJobs();
 
-      renderJobs();
+  } catch (error) {
+    payJobs.innerHTML = `
+      <div class="message">
+        ${escapeHtml(error.message)}
+      </div>
+    `;
+  }
     }
 
     document
