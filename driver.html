@@ -457,9 +457,11 @@
 
   <script>
     const client = supabase.createClient(
-      "https://dczlucwfjayymlwbzzdi.supabase.co",
-      "sb_publishable_kcv_a78ZyUxMo2neKUANdw_XN7eAMpI"
-    );
+  "https://dczlucwfjayymlwbzzdi.supabase.co",
+  "sb_publishable_kcv_a78ZyUxMo2neKUANdw_XN7eAMpI"
+);
+
+window.mgSupabaseClient = client;
 
     const activeJobsBox = document.getElementById("activeJobs");
     const completedJobsBox = document.getElementById("completedJobs");
@@ -854,6 +856,14 @@
       }
 
       driver = driverResult.data;
+      window.dispatchEvent(
+  new CustomEvent("mg-driver-ready", {
+    detail: {
+      name: driver.full_name,
+      email: driver.email
+    }
+  })
+);
 
       document.getElementById("welcomeText").textContent =
         "Welcome, " + (driver.full_name || "Driver");
@@ -1086,5 +1096,5 @@
       }
     })();
   </script>
-</body>
+<script src="/menu.js"></script></body>
 </html>
