@@ -37,10 +37,7 @@
       color: var(--ink);
     }
 
-    button,
-    input,
-    select,
-    textarea {
+    button {
       font: inherit;
     }
 
@@ -130,11 +127,10 @@
       font-size: 18px;
     }
 
-    .week-dates {
+    .summary-date {
       margin-top: 7px;
       color: var(--muted);
       font-size: 13px;
-      line-height: 1.4;
     }
 
     .panel {
@@ -298,7 +294,7 @@
         </div>
 
         <div
-          class="week-dates"
+          class="summary-date"
           id="todayDate"
         ></div>
       </div>
@@ -316,7 +312,7 @@
         </div>
 
         <div
-          class="week-dates"
+          class="summary-date"
           id="weekDates"
         ></div>
       </div>
@@ -337,13 +333,13 @@
 
       <div id="payJobs" class="pay-list">
         <div class="empty">
-          Loading this week’s completed jobs…
+          Loading this week’s completed jobs...
         </div>
       </div>
     </section>
 
     <div class="notice">
-      Only the current Monday–Sunday pay period is shown here.
+      Only the current Monday–Sunday pay period is shown.
       Previous weeks remain available to MG Express Dispatch.
     </div>
   </main>
@@ -380,17 +376,13 @@
 
     function startOfToday() {
       const date = new Date();
-
       date.setHours(0, 0, 0, 0);
-
       return date;
     }
 
     function startOfCurrentWeek() {
       const date = startOfToday();
-
       const day = date.getDay();
-
       const daysSinceMonday =
         day === 0 ? 6 : day - 1;
 
@@ -403,17 +395,13 @@
 
     function endOfCurrentWeek() {
       const date = startOfCurrentWeek();
-
       date.setDate(date.getDate() + 7);
-
       return date;
     }
 
     function jobCompletedDate(job) {
       return new Date(
-        job.completed_at ||
         job.delivery_photo_uploaded_at ||
-    ||
         job.created_at
       );
     }
@@ -443,11 +431,8 @@
     }
 
     function updateSummary() {
-      const todayStart =
-        startOfToday();
-
-      const tomorrowStart =
-        new Date(todayStart);
+      const todayStart = startOfToday();
+      const tomorrowStart = new Date(todayStart);
 
       tomorrowStart.setDate(
         tomorrowStart.getDate() + 1
@@ -530,7 +515,9 @@
               <div class="pay-job-top">
                 <div>
                   <div class="job-number">
-                    ${escapeHtml(job.job_number)}
+                    ${escapeHtml(
+                      job.job_number || "Job"
+                    )}
                   </div>
 
                   <div class="job-customer">
@@ -540,7 +527,8 @@
                   </div>
 
                   <div class="job-date">
-                    Completed ${escapeHtml(
+                    Completed
+                    ${escapeHtml(
                       formatDateTime(completed)
                     )}
                   </div>
@@ -555,12 +543,16 @@
 
               <div class="route">
                 <strong>Pickup</strong><br>
-                ${escapeHtml(job.pickup_address || "")}
+                ${escapeHtml(
+                  job.pickup_address || ""
+                )}
 
                 <div class="route-arrow">↓</div>
 
                 <strong>Delivery</strong><br>
-                ${escapeHtml(job.delivery_address || "")}
+                ${escapeHtml(
+                  job.delivery_address || ""
+                )}
               </div>
             </article>
           `;
@@ -596,28 +588,16 @@
         driverResult.error ||
         !driverResult.data
       ) {
-        alert(
+        throw new Error(
           driverResult.error?.message ||
           "No driver account was found."
         );
-
-        await client.auth.signOut();
-
-        location.replace("/index.html");
-
-        return false;
       }
 
       if (driverResult.data.active === false) {
-        alert(
-          "This driver account is currently inactive."
+        throw new Error(
+          "This driver account is inactive."
         );
-
-        await client.auth.signOut();
-
-        location.replace("/index.html");
-
-        return false;
       }
 
       driver = driverResult.data;
@@ -635,106 +615,106 @@
     }
 
     async function loadPay() {
-  payJobs.innerHTML = `
-    <div class="empty">
-      Loading this week's completed jobs...
-    </div>
-  `;
+      payJobs.innerHTML = `
+        <div class="empty">
+          Loading this week’s completed jobs...
+        </div>
+      `;
 
-  try {
-    const result = await client
-      .from("quotes")
-      .select(`
-        id,
-        job_number,
-        customer_name,
-        pickup_address,
-        delivery_address,
-        driver_pay,
-        status,
-        assigned_driver_id,
-        delivery_photo_uploaded_at,
-        created_at
-      `)
-      .eq("assigned_driver_id", driver.id)
-      .eq("status", "delivered")
-      .order("created_at", { ascending: false });
+      const result = await client
+        .from("quotes")
+        .select(`
+          id,
+          job_number,
+          customer_name,
+          pickup_address,
+          delivery_address,
+          driver_pay,
+          status,
+          assigned_driver_id,
+          delivery_photo_uploaded_at,
+          created_at
+        `)
+        .eq(
+          "assigned_driver_id",
+          driver.id
+        )
+        .eq("status", "delivered")
+        .order(
+          "created_at",
+          {
+            ascending: false
+          }
+        );
 
-    if (result.error) throw result.error;
+      if (result.error) {
+        throw result.error;
+      }
 
-    const weekStart = startOfCurrentWeek();
-    const weekEnd = endOfCurrentWeek();
+      const weekStart =
+        startOfCurrentWeek();
 
-    weeklyJobs = (result.data || []).filter(job => {
-      const completed = jobCompletedDate(job);
+      const weekEnd =
+        endOfCurrentWeek();
 
-      return (
-        !isNaN(completed.getTime()) &&
-        completed >= weekStart &&
-        completed < weekEnd
-      );
-    });
+      weeklyJobs =
+        (result.data || []).filter(job => {
+          const completed =
+            jobCompletedDate(job);
 
-    renderJobs();
+          return (
+            !Number.isNaN(completed.getTime()) &&
+            completed >= weekStart &&
+            completed < weekEnd
+          );
+        });
 
-  } catch (error) {
-    payJobs.innerHTML = `
-      <div class="message">
-        ${escapeHtml(error.message)}
-      </div>
-    `;
-  }
+      renderJobs();
+    }
+
+    async function startPage() {
+      try {
+        const validDriver =
+          await verifyDriver();
+
+        if (!validDriver) {
+          return;
+        }
+
+        await loadPay();
+      } catch (error) {
+        payJobs.innerHTML = `
+          <div class="message">
+            ${escapeHtml(
+              error.message ||
+              "Unable to load driver pay."
+            )}
+          </div>
+        `;
+      }
     }
 
     document
-  .getElementById("refreshButton")
-  .addEventListener("click", async function () {
-    try {
-      if (!driver) {
-        const validDriver = await verifyDriver();
+      .getElementById("refreshButton")
+      .addEventListener(
+        "click",
+        async function () {
+          try {
+            await loadPay();
+          } catch (error) {
+            payJobs.innerHTML = `
+              <div class="message">
+                ${escapeHtml(
+                  error.message ||
+                  "Unable to refresh driver pay."
+                )}
+              </div>
+            `;
+          }
+        }
+      );
 
-        if (!validDriver) return;
-      }
-
-      await loadPay();
-    } catch (error) {
-      payJobs.innerHTML = `
-        <div class="message">
-          ${escapeHtml(
-            error.message ||
-            "Unable to refresh driver pay."
-          )}
-        </div>
-      `;
-    }
-  });
-
-(async function start() {
-  try {
-    const validDriver = await verifyDriver();
-
-    if (!validDriver) {
-      payJobs.innerHTML = `
-        <div class="message">
-          Driver account could not be verified.
-        </div>
-      `;
-
-      return;
-    }
-
-    await loadPay();
-  } catch (error) {
-    payJobs.innerHTML = `
-      <div class="message">
-        ${escapeHtml(
-          error.message ||
-          "Unable to load driver pay."
-        )}
-      </div>
-    `;
-  }
-})();
+    startPage();
   </script>
 
   <script src="/menu.js"></script>
