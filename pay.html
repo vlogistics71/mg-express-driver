@@ -222,4 +222,494 @@
       font-weight: 900;
     }
 
-    .empty
+    .empty {
+      padding: 28px;
+      border-radius: 16px;
+      background: #f8fbfa;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .message {
+      padding: 16px;
+      border-radius: 14px;
+      background: #fff0f0;
+      color: var(--danger);
+      line-height: 1.45;
+    }
+
+    .notice {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .pay-summary {
+        grid-template-columns: 1fr;
+      }
+
+      h1 {
+        font-size: 40px;
+      }
+
+      .panel {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div>
+        <div class="brand">
+          MG <span>EXPRESS</span> DRIVER
+        </div>
+
+        <div
+          class="driver-email"
+          id="driverEmail"
+        ></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <div class="eyebrow">Current earnings</div>
+
+    <h1>My Pay</h1>
+
+    <section class="pay-summary">
+      <div class="summary-card">
+        <div
+          class="summary-number"
+          id="todayPay"
+        >
+          $0.00
+        </div>
+
+        <div class="summary-label">
+          Completed Today
+        </div>
+
+        <div
+          class="week-dates"
+          id="todayDate"
+        ></div>
+      </div>
+
+      <div class="summary-card">
+        <div
+          class="summary-number"
+          id="weekPay"
+        >
+          $0.00
+        </div>
+
+        <div class="summary-label">
+          Current Week
+        </div>
+
+        <div
+          class="week-dates"
+          id="weekDates"
+        ></div>
+      </div>
+    </section>
+
+    <section class="panel">
+      <div class="panel-heading">
+        <h2>This Week’s Jobs</h2>
+
+        <button
+          class="refresh-button"
+          id="refreshButton"
+          type="button"
+        >
+          Refresh
+        </button>
+      </div>
+
+      <div id="payJobs" class="pay-list">
+        <div class="empty">
+          Loading this week’s completed jobs…
+        </div>
+      </div>
+    </section>
+
+    <div class="notice">
+      Only the current Monday–Sunday pay period is shown here.
+      Previous weeks remain available to MG Express Dispatch.
+    </div>
+  </main>
+
+  <script>
+    const client = supabase.createClient(
+      "https://dczlucwfjayymlwbzzdi.supabase.co",
+      "sb_publishable_kcv_a78ZyUxMo2neKUANdw_XN7eAMpI"
+    );
+
+    window.mgSupabaseClient = client;
+
+    const payJobs =
+      document.getElementById("payJobs");
+
+    let driver = null;
+    let weeklyJobs = [];
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value ?? "";
+      return div.innerHTML;
+    }
+
+    function money(value) {
+      return Number(value || 0).toLocaleString(
+        "en-US",
+        {
+          style: "currency",
+          currency: "USD"
+        }
+      );
+    }
+
+    function startOfToday() {
+      const date = new Date();
+
+      date.setHours(0, 0, 0, 0);
+
+      return date;
+    }
+
+    function startOfCurrentWeek() {
+      const date = startOfToday();
+
+      const day = date.getDay();
+
+      const daysSinceMonday =
+        day === 0 ? 6 : day - 1;
+
+      date.setDate(
+        date.getDate() - daysSinceMonday
+      );
+
+      return date;
+    }
+
+    function endOfCurrentWeek() {
+      const date = startOfCurrentWeek();
+
+      date.setDate(date.getDate() + 7);
+
+      return date;
+    }
+
+    function jobCompletedDate(job) {
+      return new Date(
+        job.completed_at ||
+        job.delivery_photo_uploaded_at ||
+        job.updated_at ||
+        job.created_at
+      );
+    }
+
+    function formatDate(date) {
+      return new Intl.DateTimeFormat(
+        "en-US",
+        {
+          weekday: "short",
+          month: "short",
+          day: "numeric"
+        }
+      ).format(date);
+    }
+
+    function formatDateTime(date) {
+      return new Intl.DateTimeFormat(
+        "en-US",
+        {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit"
+        }
+      ).format(date);
+    }
+
+    function updateSummary() {
+      const todayStart =
+        startOfToday();
+
+      const tomorrowStart =
+        new Date(todayStart);
+
+      tomorrowStart.setDate(
+        tomorrowStart.getDate() + 1
+      );
+
+      const todayJobs =
+        weeklyJobs.filter(job => {
+          const completed =
+            jobCompletedDate(job);
+
+          return (
+            completed >= todayStart &&
+            completed < tomorrowStart
+          );
+        });
+
+      const todayTotal =
+        todayJobs.reduce(
+          (total, job) =>
+            total + Number(job.driver_pay || 0),
+          0
+        );
+
+      const weekTotal =
+        weeklyJobs.reduce(
+          (total, job) =>
+            total + Number(job.driver_pay || 0),
+          0
+        );
+
+      document
+        .getElementById("todayPay")
+        .textContent = money(todayTotal);
+
+      document
+        .getElementById("weekPay")
+        .textContent = money(weekTotal);
+
+      document
+        .getElementById("todayDate")
+        .textContent = formatDate(new Date());
+
+      const weekStart =
+        startOfCurrentWeek();
+
+      const weekEnd =
+        new Date(endOfCurrentWeek());
+
+      weekEnd.setDate(
+        weekEnd.getDate() - 1
+      );
+
+      document
+        .getElementById("weekDates")
+        .textContent =
+          `${formatDate(weekStart)} – ${formatDate(weekEnd)}`;
+    }
+
+    function renderJobs() {
+      updateSummary();
+
+      if (!weeklyJobs.length) {
+        payJobs.innerHTML = `
+          <div class="empty">
+            No completed jobs have been recorded
+            for the current week.
+          </div>
+        `;
+
+        return;
+      }
+
+      payJobs.innerHTML =
+        weeklyJobs.map(job => {
+          const completed =
+            jobCompletedDate(job);
+
+          return `
+            <article class="pay-job">
+              <div class="pay-job-top">
+                <div>
+                  <div class="job-number">
+                    ${escapeHtml(job.job_number)}
+                  </div>
+
+                  <div class="job-customer">
+                    ${escapeHtml(
+                      job.customer_name || "Customer"
+                    )}
+                  </div>
+
+                  <div class="job-date">
+                    Completed ${escapeHtml(
+                      formatDateTime(completed)
+                    )}
+                  </div>
+                </div>
+
+                <div class="job-pay">
+                  ${escapeHtml(
+                    money(job.driver_pay)
+                  )}
+                </div>
+              </div>
+
+              <div class="route">
+                <strong>Pickup</strong><br>
+                ${escapeHtml(job.pickup_address || "")}
+
+                <div class="route-arrow">↓</div>
+
+                <strong>Delivery</strong><br>
+                ${escapeHtml(job.delivery_address || "")}
+              </div>
+            </article>
+          `;
+        }).join("");
+    }
+
+    async function verifyDriver() {
+      const sessionResult =
+        await client.auth.getSession();
+
+      const session =
+        sessionResult.data.session;
+
+      if (!session) {
+        location.replace("/index.html");
+        return false;
+      }
+
+      document
+        .getElementById("driverEmail")
+        .textContent =
+          session.user.email || "";
+
+      const driverResult = await client
+        .from("drivers")
+        .select(
+          "id,full_name,email,active"
+        )
+        .eq("id", session.user.id)
+        .maybeSingle();
+
+      if (
+        driverResult.error ||
+        !driverResult.data
+      ) {
+        alert(
+          driverResult.error?.message ||
+          "No driver account was found."
+        );
+
+        await client.auth.signOut();
+
+        location.replace("/index.html");
+
+        return false;
+      }
+
+      if (driverResult.data.active === false) {
+        alert(
+          "This driver account is currently inactive."
+        );
+
+        await client.auth.signOut();
+
+        location.replace("/index.html");
+
+        return false;
+      }
+
+      driver = driverResult.data;
+
+      window.dispatchEvent(
+        new CustomEvent("mg-driver-ready", {
+          detail: {
+            name: driver.full_name,
+            email: driver.email
+          }
+        })
+      );
+
+      return true;
+    }
+
+    async function loadPay() {
+      payJobs.innerHTML = `
+        <div class="empty">
+          Loading this week’s completed jobs…
+        </div>
+      `;
+
+      const weekStart =
+        startOfCurrentWeek().toISOString();
+
+      const weekEnd =
+        endOfCurrentWeek().toISOString();
+
+      const result = await client
+        .from("quotes")
+        .select(`
+          id,
+          job_number,
+          customer_name,
+          pickup_address,
+          delivery_address,
+          driver_pay,
+          status,
+          assigned_driver_id,
+          completed_at,
+          delivery_photo_uploaded_at,
+          updated_at,
+          created_at
+        `)
+        .eq(
+          "assigned_driver_id",
+          driver.id
+        )
+        .eq("status", "delivered")
+        .gte("completed_at", weekStart)
+        .lt("completed_at", weekEnd)
+        .order(
+          "completed_at",
+          {
+            ascending: false
+          }
+        );
+
+      if (result.error) {
+        payJobs.innerHTML = `
+          <div class="message">
+            ${escapeHtml(result.error.message)}
+          </div>
+        `;
+
+        return;
+      }
+
+      weeklyJobs =
+        result.data || [];
+
+      renderJobs();
+    }
+
+    document
+      .getElementById("refreshButton")
+      .addEventListener(
+        "click",
+        loadPay
+      );
+
+    (async function start() {
+      const validDriver =
+        await verifyDriver();
+
+      if (validDriver) {
+        await loadPay();
+      }
+    })();
+  </script>
+
+  <script src="/menu.js"></script>
+</body>
+</html>
