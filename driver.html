@@ -157,31 +157,41 @@
       gap: 18px;
     }
 
-    .job-card {
+    .compact-job {
       background: white;
       border: 1px solid var(--line);
-      border-radius: 22px;
-      padding: 21px;
-      box-shadow: 0 9px 28px rgba(0,0,0,.05);
+      border-radius: 16px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.05);
+      min-height: 132px;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+      cursor: pointer;
     }
 
-    .job-top {
+    .compact-top {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 17px;
     }
 
-    .job-number {
+    .compact-job-number {
       color: var(--dark);
-      font-size: 23px;
+      font-size: 20px;
       font-weight: 900;
+    }
+
+    .compact-badges {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
     .status {
       border-radius: 999px;
-      padding: 8px 11px;
+      padding: 6px 10px;
       background: var(--light-green);
       color: var(--green);
       font-size: 12px;
@@ -190,64 +200,204 @@
       white-space: nowrap;
     }
 
-    .pay-box {
-      margin-bottom: 17px;
-      border-radius: 15px;
-      background: #edf8f3;
-      padding: 15px;
+    .new-badge {
+      border-radius: 999px;
+      padding: 6px 10px;
+      background: #ff665c;
+      color: white;
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
     }
 
-    .pay-label {
+    .compact-route {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+      align-items: center;
+      gap: 8px;
+    }
+
+    .compact-stop {
+      font-size: 14px;
+      line-height: 1.3;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .compact-stop:last-child {
+      text-align: right;
+    }
+
+    .compact-arrow {
+      color: var(--green);
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .compact-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-top: 1px solid var(--line);
+      padding-top: 10px;
+    }
+
+    .compact-speed {
       color: var(--muted);
       font-size: 12px;
       font-weight: 800;
       text-transform: uppercase;
     }
 
-    .pay-amount {
+    .compact-pay {
       color: var(--green);
-      font-size: 27px;
       font-weight: 900;
-      margin-top: 4px;
+      font-size: 20px;
+      margin-top: 3px;
     }
 
-    .detail {
-      margin-top: 16px;
+    .view-job {
+      border: 1px solid var(--line);
+      border-radius: 11px;
+      background: #f7fbf9;
+      color: var(--dark);
+      font-size: 13px;
+      font-weight: 900;
+      min-height: 40px;
+      padding: 8px 12px;
+      white-space: nowrap;
     }
 
-    .detail-label {
+    .job-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      display: grid;
+      align-items: end;
+    }
+
+    .job-modal[hidden] {
+      display: none;
+    }
+
+    .job-modal-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, .45);
+    }
+
+    .job-modal-sheet {
+      position: relative;
+      background: white;
+      border-radius: 20px 20px 0 0;
+      max-height: 90vh;
+      overflow-y: auto;
+      padding: 18px;
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, .18);
+    }
+
+    .job-modal-close {
+      border: 1px solid var(--line);
+      background: white;
+      color: var(--dark);
+      border-radius: 999px;
+      width: 38px;
+      height: 38px;
+      font-weight: 900;
+      position: absolute;
+      top: 12px;
+      right: 12px;
+    }
+
+    .modal-title {
+      margin: 2px 52px 6px 0;
+      color: var(--dark);
+      font-size: 28px;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+
+    .modal-status-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .modal-pay {
+      margin: 14px 0 4px;
+      color: var(--green);
+      font-size: 30px;
+      font-weight: 900;
+    }
+
+    .modal-grid {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .modal-item {
+      background: #f8fcfa;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px;
+    }
+
+    .modal-label {
       color: var(--muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 900;
       text-transform: uppercase;
-      margin-bottom: 5px;
+      margin-bottom: 4px;
     }
 
-    .detail-value {
-      font-size: 18px;
-      line-height: 1.4;
+    .modal-value {
+      color: var(--ink);
+      font-size: 15px;
+      line-height: 1.35;
       white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
-    .arrow {
-      color: var(--green);
-      font-size: 25px;
+    .modal-section-title {
+      color: var(--dark);
+      font-size: 18px;
       font-weight: 900;
-      margin: 10px 0;
+      margin-top: 16px;
+      margin-bottom: 9px;
+    }
+
+    .workflow-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 8px;
     }
 
     .button-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0,1fr));
       gap: 10px;
-      margin-top: 20px;
+      margin-top: 12px;
+    }
+
+    .modal-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
     }
 
     .action {
       border: 0;
       border-radius: 13px;
-      min-height: 54px;
-      padding: 13px 15px;
+      min-height: 48px;
+      padding: 11px 14px;
       font-weight: 900;
     }
 
@@ -308,6 +458,7 @@
     }
 
     select,
+    input,
     textarea {
       width: 100%;
       margin-top: 7px;
@@ -376,17 +527,45 @@
       margin-top: 5px;
     }
 
+    .job-number {
+      color: var(--dark);
+      font-size: 23px;
+      font-weight: 900;
+    }
+
+    body.modal-open {
+      overflow: hidden;
+    }
+
     @media (max-width: 650px) {
       .earnings {
         grid-template-columns: 1fr 1fr;
       }
 
+      .workflow-grid,
       .button-grid {
         grid-template-columns: 1fr;
       }
 
       h1 {
         font-size: 38px;
+      }
+
+      .compact-job {
+        min-height: 124px;
+      }
+    }
+
+    @media (min-width: 760px) {
+      .job-modal {
+        align-items: center;
+        justify-items: center;
+      }
+
+      .job-modal-sheet {
+        width: min(700px, calc(100% - 40px));
+        max-height: 88vh;
+        border-radius: 18px;
       }
     }
   </style>
@@ -455,6 +634,18 @@
     </section>
   </main>
 
+  <div id="jobModal" class="job-modal" hidden>
+    <div id="jobModalBackdrop" class="job-modal-backdrop"></div>
+
+    <div class="job-modal-sheet" role="dialog" aria-modal="true" aria-labelledby="jobModalTitle">
+      <button id="jobModalClose" class="job-modal-close" type="button" aria-label="Close job details">
+        X
+      </button>
+
+      <div id="jobModalContent"></div>
+    </div>
+  </div>
+
   <script>
     const client = supabase.createClient(
   "https://dczlucwfjayymlwbzzdi.supabase.co",
@@ -465,10 +656,16 @@ window.mgSupabaseClient = client;
 
     const activeJobsBox = document.getElementById("activeJobs");
     const completedJobsBox = document.getElementById("completedJobs");
+    const jobModal = document.getElementById("jobModal");
+    const jobModalContent = document.getElementById("jobModalContent");
+    const jobModalBackdrop = document.getElementById("jobModalBackdrop");
+    const jobModalClose = document.getElementById("jobModalClose");
 
     let currentSession = null;
     let driver = null;
     let jobs = [];
+    let activeModalJobId = null;
+    let modalBusy = false;
 
     function escapeHtml(value) {
       const div = document.createElement("div");
@@ -486,8 +683,10 @@ window.mgSupabaseClient = client;
     function statusLabel(status) {
       const labels = {
         assigned: "Assigned",
+        arrived_at_pickup: "Arrived at Pickup",
         en_route_to_pickup: "En Route to Pickup",
         picked_up: "Picked Up",
+        arrived_at_delivery: "Arrived at Delivery",
         en_route_to_delivery: "En Route to Delivery",
         new: "Assigned",
         waiting_payment: "Waiting",
@@ -500,6 +699,19 @@ window.mgSupabaseClient = client;
 
       return labels[status] ||
         String(status || "").replaceAll("_", " ");
+    }
+
+    function normalizeJobStatus(job) {
+      const status = String(job?.status || "assigned").toLowerCase();
+
+      if (status === "new") return "assigned";
+      if (status === "in_transit") return "en_route_to_delivery";
+
+      return status;
+    }
+
+    function hasAccepted(job) {
+      return String(job.driver_acceptance_status || "").toLowerCase() === "accepted";
     }
 
     function formatDate(value) {
@@ -566,6 +778,86 @@ window.mgSupabaseClient = client;
         encodeURIComponent(address || "");
     }
 
+    function fieldValue(job, keys) {
+      for (const key of keys) {
+        const value = job?.[key];
+
+        if (value !== null && value !== undefined && String(value).trim() !== "") {
+          return String(value).trim();
+        }
+      }
+
+      return "";
+    }
+
+    function shortAddress(address) {
+      const value = String(address || "").trim();
+      if (!value) return "Address not available";
+
+      const compact = value
+        .split(",")
+        .map(part => part.trim())
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(", ");
+
+      if (compact.length <= 34) return compact;
+      return compact.slice(0, 31) + "...";
+    }
+
+    function locationSummary(job, prefix) {
+      const city = fieldValue(job, [
+        prefix + "_city",
+        prefix + "City"
+      ]);
+
+      const zip = fieldValue(job, [
+        prefix + "_zip",
+        prefix + "_postal_code",
+        prefix + "_postcode"
+      ]);
+
+      if (city && zip) return city + " " + zip;
+      if (city) return city;
+      if (zip) return "ZIP " + zip;
+
+      return shortAddress(job[prefix + "_address"]);
+    }
+
+    function scheduledTimestamp(job) {
+      const source = fieldValue(job, [
+        "pickup_time",
+        "pickup_at",
+        "scheduled_pickup_at",
+        "scheduled_at",
+        "requested_pickup_at",
+        "created_at"
+      ]);
+
+      const value = source ? Date.parse(source) : 0;
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function deliverySpeedOrTime(job) {
+      if (job.delivery_speed) {
+        return String(job.delivery_speed);
+      }
+
+      const source = fieldValue(job, [
+        "pickup_time",
+        "pickup_at",
+        "scheduled_pickup_at",
+        "scheduled_at",
+        "requested_pickup_at"
+      ]);
+
+      if (source) {
+        return "Scheduled " + formatDate(source);
+      }
+
+      return "Standard";
+    }
+
     function photoInput(jobId, type) {
       return `
         <input
@@ -609,89 +901,30 @@ window.mgSupabaseClient = client;
       return !value || value === "pending";
     }
 
-    function workflowButtons(job) {
-      const status = String(job.status || "").toLowerCase();
-      const acceptance = String(job.driver_acceptance_status || "").toLowerCase();
+    function workflowState(job) {
+      const status = normalizeJobStatus(job);
 
       if (status === "assigned" && acceptancePending(job)) {
-        return `
-          <button
-            class="action primary"
-            type="button"
-            onclick="acceptJob('${job.id}')"
-          >
-            Accept Job
-          </button>
-
-          <button
-            class="action directions"
-            type="button"
-            onclick="rejectJob('${job.id}')"
-          >
-            Reject Job
-          </button>
-        `;
+        return "pending";
       }
 
-      if (status === "assigned" && acceptance === "accepted") {
-        return `
-          <button
-            class="action primary"
-            type="button"
-            onclick="markEnRouteToPickup('${job.id}')"
-          >
-            En Route to Pickup
-          </button>
-        `;
+      if (status === "assigned" && hasAccepted(job)) {
+        return "accepted";
       }
 
-      if (status === "en_route_to_pickup") {
-        return `
-          <button
-            class="action primary"
-            type="button"
-            onclick="markPickedUp('${job.id}')"
-          >
-            Picked Up
-          </button>
-        `;
+      if (["en_route_to_pickup", "arrived_at_pickup"].includes(status)) {
+        return "pickup_phase";
       }
 
       if (status === "picked_up") {
-        return `
-          <button
-            class="action primary"
-            type="button"
-            onclick="markEnRouteToDelivery('${job.id}')"
-          >
-            En Route to Delivery
-          </button>
-        `;
+        return "picked_up";
       }
 
-      if (status === "en_route_to_delivery") {
-        return `
-          ${photoInput(job.id, "delivery")}
-
-          <button
-            class="action photo-button"
-            type="button"
-            onclick="document.getElementById('deliveryFile-${job.id}').click()"
-          >
-            ${job.delivery_photo_url ? "Replace Delivery Photo" : "Take Delivery Photo"}
-          </button>
-
-          <button
-            class="action primary"
-            type="button"
-            onclick="markDelivered('${job.id}')"
-          >
-            Delivered
-          </button>
-        `;
+      if (["en_route_to_delivery", "arrived_at_delivery"].includes(status)) {
+        return "delivery_phase";
       }
 
-      return "";
+      return "other";
     }
 
     function renderPhotoArea(job, type) {
@@ -731,126 +964,268 @@ window.mgSupabaseClient = client;
       `;
     }
 
-    function activeJobCard(job) {
-      const showDeliveryProof = String(job.status || "").toLowerCase() === "en_route_to_delivery";
+    function compactJobCard(job) {
+      const status = normalizeJobStatus(job);
+      const isNew = status === "assigned" && acceptancePending(job);
 
       return `
-        <article class="job-card">
-          <div class="job-top">
-            <div class="job-number">
+        <article
+          class="compact-job"
+          role="button"
+          tabindex="0"
+          onclick="openJobDetails('${job.id}')"
+          onkeydown="if(event.key==='Enter' || event.key===' '){event.preventDefault();openJobDetails('${job.id}');}"
+        >
+          <div class="compact-top">
+            <div class="compact-job-number">
               ${escapeHtml(job.job_number)}
             </div>
 
-            <div class="status">
-              ${escapeHtml(statusLabel(job.status))}
+            <div class="compact-badges">
+              <div class="status">
+                ${escapeHtml(statusLabel(status))}
+              </div>
+
+              ${isNew ? '<div class="new-badge">NEW</div>' : ""}
             </div>
           </div>
 
-          <div class="pay-box">
-            <div class="pay-label">Your Pay</div>
-            <div class="pay-amount">${money(job.driver_pay)}</div>
-          </div>
+          <div class="compact-route">
+            <div class="compact-stop" title="${escapeHtml(job.pickup_address || "")}">
+              ${escapeHtml(locationSummary(job, "pickup"))}
+            </div>
 
-          <div class="detail">
-            <div class="detail-label">Customer</div>
-            <div class="detail-value">
-              ${escapeHtml(job.customer_name || "Customer")}
+            <div class="compact-arrow">-></div>
+
+            <div class="compact-stop" title="${escapeHtml(job.delivery_address || "")}">
+              ${escapeHtml(locationSummary(job, "delivery"))}
             </div>
           </div>
 
-          <div class="detail">
-            <div class="detail-label">Pickup</div>
-            <div class="detail-value">
-              ${escapeHtml(job.pickup_address)}
+          <div class="compact-meta">
+            <div>
+              <div class="compact-speed">${escapeHtml(deliverySpeedOrTime(job))}</div>
+              <div class="compact-pay">${money(job.driver_pay)}</div>
             </div>
-          </div>
-
-          <div class="arrow">↓</div>
-
-          <div class="detail">
-            <div class="detail-label">Delivery</div>
-            <div class="detail-value">
-              ${escapeHtml(job.delivery_address)}
-            </div>
-          </div>
-
-          ${
-            job.package_type
-              ? `<div class="detail">
-                   <div class="detail-label">Package</div>
-                   <div class="detail-value">
-                     ${escapeHtml(job.package_type)}
-                   </div>
-                 </div>`
-              : ""
-          }
-
-          ${
-            job.special_instructions
-              ? `<div class="detail">
-                   <div class="detail-label">Instructions</div>
-                   <div class="detail-value">
-                     ${escapeHtml(job.special_instructions)}
-                   </div>
-                 </div>`
-              : ""
-          }
-
-          <div class="button-grid">
-            <button
-              class="action directions"
-              type="button"
-              onclick="window.open('${mapLink(job.pickup_address)}','_blank')"
-            >
-              Pickup Directions
-            </button>
 
             <button
-              class="action directions"
+              class="view-job"
               type="button"
-              onclick="window.open('${mapLink(job.delivery_address)}','_blank')"
+              onclick="event.stopPropagation();openJobDetails('${job.id}')"
             >
-              Delivery Directions
+              View Job
             </button>
-
-            ${workflowButtons(job)}
           </div>
-
-          ${showDeliveryProof ? `
-            <div class="delivery-options">
-              <label>
-                POD Recipient Name
-                <input
-                  id="podRecipient-${job.id}"
-                  type="text"
-                  value="${escapeHtml(podRecipientValue(job))}"
-                  placeholder="Enter recipient name if no photo"
-                >
-              </label>
-            </div>
-
-            ${renderPhotoArea(job, "delivery")}
-          ` : ""}
-
-          <div id="message-${job.id}"></div>
         </article>
       `;
+    }
+
+    function safeText(value, fallback = "Not provided") {
+      const text = String(value || "").trim();
+      return text || fallback;
+    }
+
+    function workflowButtonsInModal(job) {
+      const state = workflowState(job);
+
+      if (state === "pending") {
+        return `
+          <button class="action primary" type="button" onclick="acceptJob('${job.id}')">Accept Job</button>
+          <button class="action directions" type="button" onclick="rejectJob('${job.id}')">Reject Job</button>
+        `;
+      }
+
+      if (state === "accepted") {
+        return `
+          <button class="action primary" type="button" onclick="markEnRouteToPickup('${job.id}')">En Route to Pickup</button>
+        `;
+      }
+
+      if (state === "pickup_phase") {
+        return `
+          <button class="action directions" type="button" onclick="markArrivedAtPickup('${job.id}')">Arrived at Pickup</button>
+          <button class="action primary" type="button" onclick="markPickedUp('${job.id}')">Picked Up</button>
+        `;
+      }
+
+      if (state === "picked_up") {
+        return `
+          <button class="action primary" type="button" onclick="markEnRouteToDelivery('${job.id}')">En Route to Delivery</button>
+        `;
+      }
+
+      if (state === "delivery_phase") {
+        return `
+          <button class="action directions" type="button" onclick="markArrivedAtDelivery('${job.id}')">Arrived at Delivery</button>
+          <button class="action primary" type="button" onclick="markDelivered('${job.id}')">Delivered</button>
+        `;
+      }
+
+      return '<div class="modal-note">No workflow actions available.</div>';
+    }
+
+    function renderJobDetailsModal(job) {
+      const status = normalizeJobStatus(job);
+      const state = workflowState(job);
+      const showPickupControls = ["pickup_phase", "picked_up", "delivery_phase"].includes(state);
+      const showDeliveryControls = state === "delivery_phase";
+      const notesForDriver = fieldValue(job, ["driver_notes", "special_instructions"]);
+      const pickupSuite = fieldValue(job, ["pickup_suite", "pickup_floor", "pickup_unit", "pickup_suite_floor"]);
+      const deliverySuite = fieldValue(job, ["delivery_suite", "delivery_floor", "delivery_unit", "delivery_suite_floor"]);
+      const pickupZip = fieldValue(job, ["pickup_zip", "pickup_postal_code", "pickup_postcode"]);
+      const deliveryZip = fieldValue(job, ["delivery_zip", "delivery_postal_code", "delivery_postcode"]);
+
+      jobModalContent.innerHTML = `
+        <h3 id="jobModalTitle" class="modal-title">${escapeHtml(job.job_number)}</h3>
+
+        <div class="modal-status-row">
+          <div class="status">${escapeHtml(statusLabel(status))}</div>
+          ${status === "assigned" && acceptancePending(job) ? '<div class="new-badge">NEW</div>' : ""}
+        </div>
+
+        <div class="modal-label">Driver Pay</div>
+        <div class="modal-pay">${money(job.driver_pay)}</div>
+
+        <div class="modal-grid">
+          <div class="modal-item"><div class="modal-label">Customer Name</div><div class="modal-value">${escapeHtml(safeText(job.customer_name, "Customer"))}</div></div>
+          <div class="modal-item"><div class="modal-label">Full Pickup Address</div><div class="modal-value">${escapeHtml(safeText(job.pickup_address))}</div></div>
+          <div class="modal-item"><div class="modal-label">Pickup Suite/Floor</div><div class="modal-value">${escapeHtml(safeText(pickupSuite))}</div></div>
+          <div class="modal-item"><div class="modal-label">Pickup ZIP</div><div class="modal-value">${escapeHtml(safeText(pickupZip))}</div></div>
+          <div class="modal-item"><div class="modal-label">Full Delivery Address</div><div class="modal-value">${escapeHtml(safeText(job.delivery_address))}</div></div>
+          <div class="modal-item"><div class="modal-label">Delivery Suite/Floor</div><div class="modal-value">${escapeHtml(safeText(deliverySuite))}</div></div>
+          <div class="modal-item"><div class="modal-label">Delivery ZIP</div><div class="modal-value">${escapeHtml(safeText(deliveryZip))}</div></div>
+          <div class="modal-item"><div class="modal-label">Delivery Recipient Name</div><div class="modal-value">${escapeHtml(safeText(podRecipientValue(job)))}</div></div>
+          <div class="modal-item"><div class="modal-label">Delivery Speed</div><div class="modal-value">${escapeHtml(safeText(job.delivery_speed, deliverySpeedOrTime(job)))}</div></div>
+          <div class="modal-item"><div class="modal-label">Package Type</div><div class="modal-value">${escapeHtml(safeText(job.package_type))}</div></div>
+          <div class="modal-item"><div class="modal-label">Dispatch Notes for Driver</div><div class="modal-value">${escapeHtml(safeText(notesForDriver))}</div></div>
+        </div>
+
+        <div class="modal-section-title">Directions</div>
+        <div class="button-grid">
+          <button class="action directions" type="button" onclick="window.open('${mapLink(job.pickup_address)}','_blank')">Pickup Directions</button>
+          <button class="action directions" type="button" onclick="window.open('${mapLink(job.delivery_address)}','_blank')">Delivery Directions</button>
+        </div>
+
+        <div class="modal-section-title">Workflow</div>
+        <div class="workflow-grid">
+          ${workflowButtonsInModal(job)}
+        </div>
+
+        ${showPickupControls ? `
+          <div class="modal-section-title">Pickup Photo</div>
+          ${photoInput(job.id, "pickup")}
+          <div class="button-grid">
+            <button class="action photo-button" type="button" onclick="document.getElementById('pickupFile-${job.id}').click()">
+              ${job.pickup_photo_url ? "Replace Pickup Photo" : "Take Pickup Photo"}
+            </button>
+          </div>
+          ${renderPhotoArea(job, "pickup")}
+        ` : ""}
+
+        ${showDeliveryControls ? `
+          <div class="modal-section-title">Delivery Proof</div>
+          ${photoInput(job.id, "delivery")}
+          <div class="button-grid">
+            <button class="action photo-button" type="button" onclick="document.getElementById('deliveryFile-${job.id}').click()">
+              ${job.delivery_photo_url ? "Replace Delivery Photo" : "Take Delivery Photo"}
+            </button>
+          </div>
+
+          <div class="delivery-options">
+            <label>
+              POD Recipient Name
+              <input
+                id="podRecipientModal-${job.id}"
+                type="text"
+                value="${escapeHtml(podRecipientValue(job))}"
+                placeholder="Enter recipient name if no delivery photo"
+              >
+            </label>
+          </div>
+
+          ${renderPhotoArea(job, "delivery")}
+          <div class="modal-note">Delivered requires delivery photo or POD recipient name.</div>
+        ` : ""}
+
+        <div id="message-${job.id}"></div>
+      `;
+    }
+
+    function openJobDetails(jobId) {
+      const job = jobs.find(item => item.id === jobId);
+      if (!job) return;
+
+      activeModalJobId = jobId;
+      renderJobDetailsModal(job);
+      jobModal.hidden = false;
+      document.body.classList.add("modal-open");
+    }
+
+    window.openJobDetails = openJobDetails;
+
+    function closeJobDetails(force = false) {
+      if (modalBusy && !force) return;
+
+      activeModalJobId = null;
+      jobModal.hidden = true;
+      document.body.classList.remove("modal-open");
+      jobModalContent.innerHTML = "";
+    }
+
+    function setModalBusy(isBusy) {
+      modalBusy = isBusy;
+
+      if (jobModal) {
+        jobModal.setAttribute("aria-busy", String(isBusy));
+      }
+    }
+
+    function activeJobsSorted() {
+      return jobs
+        .filter(job => {
+          const status = normalizeJobStatus(job);
+          const acceptance = String(job.driver_acceptance_status || "").toLowerCase();
+
+          return !["delivered", "cancelled"].includes(status) && acceptance !== "rejected";
+        })
+        .sort((left, right) => {
+          const leftPending = acceptancePending(left) && normalizeJobStatus(left) === "assigned";
+          const rightPending = acceptancePending(right) && normalizeJobStatus(right) === "assigned";
+
+          if (leftPending !== rightPending) {
+            return leftPending ? -1 : 1;
+          }
+
+          if (leftPending && rightPending) {
+            const leftCreated = Date.parse(left.created_at || 0) || 0;
+            const rightCreated = Date.parse(right.created_at || 0) || 0;
+            return rightCreated - leftCreated;
+          }
+
+          const leftPickup = scheduledTimestamp(left);
+          const rightPickup = scheduledTimestamp(right);
+
+          if (leftPickup !== rightPickup) {
+            return leftPickup - rightPickup;
+          }
+
+          const leftCreated = Date.parse(left.created_at || 0) || 0;
+          const rightCreated = Date.parse(right.created_at || 0) || 0;
+          return rightCreated - leftCreated;
+        });
     }
 
     function renderJobs() {
       updateEarnings();
 
-      const active = jobs.filter(job =>
-        !["delivered", "cancelled"].includes(job.status) &&
-        String(job.driver_acceptance_status || "").toLowerCase() !== "rejected"
-      );
+      const active = activeJobsSorted();
 
       const completed = jobs
-        .filter(job => job.status === "delivered")
+        .filter(job => normalizeJobStatus(job) === "delivered")
         .slice(0, 30);
 
       activeJobsBox.innerHTML = active.length
-        ? active.map(activeJobCard).join("")
+        ? active.map(compactJobCard).join("")
         : '<div class="empty">No active jobs are currently assigned.</div>';
 
       completedJobsBox.innerHTML = completed.length
@@ -967,6 +1342,18 @@ window.mgSupabaseClient = client;
 
       jobs = result.data || [];
       renderJobs();
+
+      if (activeModalJobId) {
+        const current = jobs.find(item => item.id === activeModalJobId);
+        const isRejected = String(current?.driver_acceptance_status || "").toLowerCase() === "rejected";
+        const isDelivered = normalizeJobStatus(current) === "delivered";
+
+        if (!current || isRejected || isDelivered) {
+          closeJobDetails(true);
+        } else {
+          renderJobDetailsModal(current);
+        }
+      }
     }
 
     async function uploadPhoto(jobId, type, input) {
@@ -979,6 +1366,7 @@ window.mgSupabaseClient = client;
         return;
       }
 
+      setModalBusy(true);
       showJobMessage(jobId, "Uploading photo…", "info");
 
       const extension =
@@ -1000,6 +1388,7 @@ window.mgSupabaseClient = client;
         });
 
       if (uploadResult.error) {
+        setModalBusy(false);
         showJobMessage(
           jobId,
           uploadResult.error.message,
@@ -1032,6 +1421,7 @@ window.mgSupabaseClient = client;
         .eq("assigned_driver_id", driver.id);
 
       if (updateResult.error) {
+        setModalBusy(false);
         showJobMessage(
           jobId,
           updateResult.error.message,
@@ -1043,11 +1433,16 @@ window.mgSupabaseClient = client;
 
       showJobMessage(jobId, "Photo uploaded successfully.", "info");
       await loadJobs();
+      setModalBusy(false);
     }
 
     window.uploadPhoto = uploadPhoto;
 
-    async function updateJob(jobId, changes, loadingText) {
+    async function updateJob(jobId, changes, loadingText, options = {}) {
+      const closeOnSuccess = Boolean(options.closeOnSuccess);
+
+      setModalBusy(true);
+
       if (loadingText) {
         showJobMessage(jobId, loadingText, "info");
       }
@@ -1059,11 +1454,18 @@ window.mgSupabaseClient = client;
         .eq("assigned_driver_id", driver.id);
 
       if (result.error) {
+        setModalBusy(false);
         showJobMessage(jobId, result.error.message, "error");
         return false;
       }
 
       await loadJobs();
+
+      if (closeOnSuccess) {
+        closeJobDetails(true);
+      }
+
+      setModalBusy(false);
       return true;
     }
 
@@ -1081,7 +1483,8 @@ window.mgSupabaseClient = client;
       await updateJob(
         jobId,
         { driver_acceptance_status: "rejected" },
-        "Rejecting job…"
+        "Rejecting job…",
+        { closeOnSuccess: true }
       );
     }
 
@@ -1096,6 +1499,16 @@ window.mgSupabaseClient = client;
     }
 
     window.markEnRouteToPickup = markEnRouteToPickup;
+
+    async function markArrivedAtPickup(jobId) {
+      await updateJob(
+        jobId,
+        { status: "arrived_at_pickup" },
+        "Updating job status…"
+      );
+    }
+
+    window.markArrivedAtPickup = markArrivedAtPickup;
 
     async function markPickedUp(jobId) {
       await updateJob(
@@ -1117,9 +1530,19 @@ window.mgSupabaseClient = client;
 
     window.markEnRouteToDelivery = markEnRouteToDelivery;
 
+    async function markArrivedAtDelivery(jobId) {
+      await updateJob(
+        jobId,
+        { status: "arrived_at_delivery" },
+        "Updating job status…"
+      );
+    }
+
+    window.markArrivedAtDelivery = markArrivedAtDelivery;
+
     async function markDelivered(jobId) {
       const job = jobs.find(item => item.id === jobId);
-      const recipientInput = document.getElementById("podRecipient-" + jobId);
+      const recipientInput = document.getElementById("podRecipientModal-" + jobId);
       const recipientName = String(recipientInput?.value || "").trim();
       const hasPhoto = Boolean(job?.delivery_photo_url);
 
@@ -1133,6 +1556,7 @@ window.mgSupabaseClient = client;
         return;
       }
 
+      setModalBusy(true);
       showJobMessage(jobId, "Completing delivery…", "info");
 
       const podField = podRecipientField(job);
@@ -1152,14 +1576,20 @@ window.mgSupabaseClient = client;
         .eq("assigned_driver_id", driver.id);
 
       if (result.error) {
+        setModalBusy(false);
         showJobMessage(jobId, result.error.message, "error");
         return;
       }
 
       await loadJobs();
+      closeJobDetails(true);
+      setModalBusy(false);
     }
 
     window.markDelivered = markDelivered;
+
+    jobModalClose.addEventListener("click", () => closeJobDetails(false));
+    jobModalBackdrop.addEventListener("click", () => closeJobDetails(false));
 
     document
       .getElementById("refreshButton")
