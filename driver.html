@@ -485,6 +485,10 @@ window.mgSupabaseClient = client;
 
     function statusLabel(status) {
       const labels = {
+        assigned: "Assigned",
+        en_route_to_pickup: "En Route to Pickup",
+        picked_up: "Picked Up",
+        en_route_to_delivery: "En Route to Delivery",
         new: "Assigned",
         waiting_payment: "Waiting",
         paid: "Ready",
@@ -575,6 +579,121 @@ window.mgSupabaseClient = client;
       `;
     }
 
+    function podRecipientField(job) {
+      if (Object.prototype.hasOwnProperty.call(job, "pod_recipient_name")) {
+        return "pod_recipient_name";
+      }
+
+      if (Object.prototype.hasOwnProperty.call(job, "recipient_name")) {
+        return "recipient_name";
+      }
+
+      if (Object.prototype.hasOwnProperty.call(job, "delivery_recipient_name")) {
+        return "delivery_recipient_name";
+      }
+
+      return "pod_recipient_name";
+    }
+
+    function podRecipientValue(job) {
+      return String(
+        job.pod_recipient_name ||
+        job.recipient_name ||
+        job.delivery_recipient_name ||
+        ""
+      ).trim();
+    }
+
+    function acceptancePending(job) {
+      const value = String(job.driver_acceptance_status || "").toLowerCase();
+      return !value || value === "pending";
+    }
+
+    function workflowButtons(job) {
+      const status = String(job.status || "").toLowerCase();
+      const acceptance = String(job.driver_acceptance_status || "").toLowerCase();
+
+      if (status === "assigned" && acceptancePending(job)) {
+        return `
+          <button
+            class="action primary"
+            type="button"
+            onclick="acceptJob('${job.id}')"
+          >
+            Accept Job
+          </button>
+
+          <button
+            class="action directions"
+            type="button"
+            onclick="rejectJob('${job.id}')"
+          >
+            Reject Job
+          </button>
+        `;
+      }
+
+      if (status === "assigned" && acceptance === "accepted") {
+        return `
+          <button
+            class="action primary"
+            type="button"
+            onclick="markEnRouteToPickup('${job.id}')"
+          >
+            En Route to Pickup
+          </button>
+        `;
+      }
+
+      if (status === "en_route_to_pickup") {
+        return `
+          <button
+            class="action primary"
+            type="button"
+            onclick="markPickedUp('${job.id}')"
+          >
+            Picked Up
+          </button>
+        `;
+      }
+
+      if (status === "picked_up") {
+        return `
+          <button
+            class="action primary"
+            type="button"
+            onclick="markEnRouteToDelivery('${job.id}')"
+          >
+            En Route to Delivery
+          </button>
+        `;
+      }
+
+      if (status === "en_route_to_delivery") {
+        return `
+          ${photoInput(job.id, "delivery")}
+
+          <button
+            class="action photo-button"
+            type="button"
+            onclick="document.getElementById('deliveryFile-${job.id}').click()"
+          >
+            ${job.delivery_photo_url ? "Replace Delivery Photo" : "Take Delivery Photo"}
+          </button>
+
+          <button
+            class="action primary"
+            type="button"
+            onclick="markDelivered('${job.id}')"
+          >
+            Delivered
+          </button>
+        `;
+      }
+
+      return "";
+    }
+
     function renderPhotoArea(job, type) {
       const isPickup = type === "pickup";
       const url = isPickup
@@ -613,9 +732,7 @@ window.mgSupabaseClient = client;
     }
 
     function activeJobCard(job) {
-      const pickupReady = Boolean(job.pickup_photo_url);
-      const deliveryReady = Boolean(job.delivery_photo_url);
-      const inTransit = job.status === "in_transit";
+      const showDeliveryProof = String(job.status || "").toLowerCase() === "en_route_to_delivery";
 
       return `
         <article class="job-card">
@@ -696,65 +813,24 @@ window.mgSupabaseClient = client;
               Delivery Directions
             </button>
 
-            ${photoInput(job.id, "pickup")}
-
-            <button
-              class="action photo-button"
-              type="button"
-              onclick="document.getElementById('pickupFile-${job.id}').click()"
-            >
-              ${pickupReady ? "Replace Pickup Photo" : "Take Pickup Photo"}
-            </button>
-
-            <button
-              class="action primary"
-              type="button"
-              ${pickupReady && !inTransit ? "" : "disabled"}
-              onclick="startDelivery('${job.id}')"
-            >
-              Start Delivery
-            </button>
+            ${workflowButtons(job)}
           </div>
 
-          ${renderPhotoArea(job, "pickup")}
-
-          <div class="delivery-options">
-            <label>
-              Delivery Method
-              <select id="deliveryMethod-${job.id}">
-                <option value="">Choose delivery method</option>
-                <option value="Handed to customer">Handed to customer</option>
-                <option value="Left at front door">Left at front door</option>
-                <option value="Left at reception">Left at reception</option>
-                <option value="Left in secure location">Left in secure location</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-
-            ${photoInput(job.id, "delivery")}
-
-            <div class="button-grid">
-              <button
-                class="action photo-button"
-                type="button"
-                ${inTransit ? "" : "disabled"}
-                onclick="document.getElementById('deliveryFile-${job.id}').click()"
-              >
-                ${deliveryReady ? "Replace Delivery Photo" : "Take Delivery Photo"}
-              </button>
-
-              <button
-                class="action primary"
-                type="button"
-                ${inTransit && deliveryReady ? "" : "disabled"}
-                onclick="markDelivered('${job.id}')"
-              >
-                Mark Delivered
-              </button>
+          ${showDeliveryProof ? `
+            <div class="delivery-options">
+              <label>
+                POD Recipient Name
+                <input
+                  id="podRecipient-${job.id}"
+                  type="text"
+                  value="${escapeHtml(podRecipientValue(job))}"
+                  placeholder="Enter recipient name if no photo"
+                >
+              </label>
             </div>
-          </div>
 
-          ${renderPhotoArea(job, "delivery")}
+            ${renderPhotoArea(job, "delivery")}
+          ` : ""}
 
           <div id="message-${job.id}"></div>
         </article>
@@ -765,7 +841,8 @@ window.mgSupabaseClient = client;
       updateEarnings();
 
       const active = jobs.filter(job =>
-        !["delivered", "cancelled"].includes(job.status)
+        !["delivered", "cancelled"].includes(job.status) &&
+        String(job.driver_acceptance_status || "").toLowerCase() !== "rejected"
       );
 
       const completed = jobs
@@ -877,28 +954,7 @@ window.mgSupabaseClient = client;
 
       const result = await client
         .from("quotes")
-        .select(`
-          id,
-          job_number,
-          customer_name,
-          customer_email,
-          pickup_address,
-          delivery_address,
-          vehicle_type,
-          delivery_speed,
-          package_type,
-          status,
-          special_instructions,
-          assigned_driver_id,
-          driver_pay,
-          pickup_photo_url,
-          delivery_photo_url,
-          pickup_photo_uploaded_at,
-          delivery_photo_uploaded_at,
-          delivery_method,
-          completed_at,
-          created_at
-        `)
+        .select("*")
         .eq("assigned_driver_id", driver.id)
         .order("created_at", { ascending: false });
 
@@ -991,56 +1047,86 @@ window.mgSupabaseClient = client;
 
     window.uploadPhoto = uploadPhoto;
 
-    async function startDelivery(jobId) {
-      const job = jobs.find(item => item.id === jobId);
-
-      if (!job?.pickup_photo_url) {
-        showJobMessage(
-          jobId,
-          "Upload the pickup photo first.",
-          "error"
-        );
-
-        return;
+    async function updateJob(jobId, changes, loadingText) {
+      if (loadingText) {
+        showJobMessage(jobId, loadingText, "info");
       }
-
-      showJobMessage(jobId, "Starting delivery…", "info");
 
       const result = await client
         .from("quotes")
-        .update({ status: "in_transit" })
+        .update(changes)
         .eq("id", jobId)
         .eq("assigned_driver_id", driver.id);
 
       if (result.error) {
         showJobMessage(jobId, result.error.message, "error");
-        return;
+        return false;
       }
 
       await loadJobs();
+      return true;
     }
 
-    window.startDelivery = startDelivery;
+    async function acceptJob(jobId) {
+      await updateJob(
+        jobId,
+        { driver_acceptance_status: "accepted" },
+        "Accepting job…"
+      );
+    }
+
+    window.acceptJob = acceptJob;
+
+    async function rejectJob(jobId) {
+      await updateJob(
+        jobId,
+        { driver_acceptance_status: "rejected" },
+        "Rejecting job…"
+      );
+    }
+
+    window.rejectJob = rejectJob;
+
+    async function markEnRouteToPickup(jobId) {
+      await updateJob(
+        jobId,
+        { status: "en_route_to_pickup" },
+        "Updating job status…"
+      );
+    }
+
+    window.markEnRouteToPickup = markEnRouteToPickup;
+
+    async function markPickedUp(jobId) {
+      await updateJob(
+        jobId,
+        { status: "picked_up" },
+        "Updating job status…"
+      );
+    }
+
+    window.markPickedUp = markPickedUp;
+
+    async function markEnRouteToDelivery(jobId) {
+      await updateJob(
+        jobId,
+        { status: "en_route_to_delivery" },
+        "Updating job status…"
+      );
+    }
+
+    window.markEnRouteToDelivery = markEnRouteToDelivery;
 
     async function markDelivered(jobId) {
       const job = jobs.find(item => item.id === jobId);
-      const method =
-        document.getElementById("deliveryMethod-" + jobId).value;
+      const recipientInput = document.getElementById("podRecipient-" + jobId);
+      const recipientName = String(recipientInput?.value || "").trim();
+      const hasPhoto = Boolean(job?.delivery_photo_url);
 
-      if (!job?.delivery_photo_url) {
+      if (!hasPhoto && !recipientName) {
         showJobMessage(
           jobId,
-          "Upload the delivery photo first.",
-          "error"
-        );
-
-        return;
-      }
-
-      if (!method) {
-        showJobMessage(
-          jobId,
-          "Choose how the package was delivered.",
+          "Provide either a delivery photo or POD recipient name.",
           "error"
         );
 
@@ -1049,13 +1135,19 @@ window.mgSupabaseClient = client;
 
       showJobMessage(jobId, "Completing delivery…", "info");
 
+      const podField = podRecipientField(job);
+      const changes = {
+        status: "delivered",
+        completed_at: new Date().toISOString()
+      };
+
+      if (recipientName) {
+        changes[podField] = recipientName;
+      }
+
       const result = await client
         .from("quotes")
-        .update({
-          status: "delivered",
-          delivery_method: method,
-          completed_at: new Date().toISOString()
-        })
+        .update(changes)
         .eq("id", jobId)
         .eq("assigned_driver_id", driver.id);
 
