@@ -664,8 +664,9 @@ window.mgSupabaseClient = client;
     let currentSession = null;
     let driver = null;
     let jobs = [];
-    let activeModalJobId = null;
+    let selectedJobId = null;
     let modalBusy = false;
+    let pendingPhotoButton = null;
 
     function escapeHtml(value) {
       const div = document.createElement("div");
@@ -683,6 +684,11 @@ window.mgSupabaseClient = client;
     function statusLabel(status) {
       const labels = {
         assigned: "Assigned",
+        accepted: "Accepted",
+        en_route_pickup: "En Route to Pickup",
+        arrived_pickup: "At Pickup",
+        en_route_delivery: "En Route to Delivery",
+        arrived_delivery: "At Delivery",
         arrived_at_pickup: "Arrived at Pickup",
         en_route_to_pickup: "En Route to Pickup",
         picked_up: "Picked Up",
@@ -702,12 +708,18 @@ window.mgSupabaseClient = client;
     }
 
     function normalizeJobStatus(job) {
-      const status = String(job?.status || "assigned").toLowerCase();
+      const workflowStatus = String(job?.driver_workflow_status || "").toLowerCase();
+      const rawStatus = String(job?.status || "assigned").toLowerCase();
+      const source = workflowStatus || rawStatus;
 
-      if (status === "new") return "assigned";
-      if (status === "in_transit") return "en_route_to_delivery";
+      if (source === "new") return "assigned";
+      if (source === "in_transit") return "en_route_to_delivery";
+      if (source === "en_route_pickup") return "en_route_to_pickup";
+      if (source === "arrived_pickup") return "arrived_at_pickup";
+      if (source === "en_route_delivery") return "en_route_to_delivery";
+      if (source === "arrived_delivery") return "arrived_at_delivery";
 
-      return status;
+      return source;
     }
 
     function hasAccepted(job) {
@@ -871,6 +883,41 @@ window.mgSupabaseClient = client;
       `;
     }
 
+    function openPhotoPicker(jobId, type, buttonElement) {
+      const input = document.getElementById(type + "File-" + jobId);
+      if (!input) return;
+
+      pendingPhotoButton = buttonElement || null;
+
+      if (pendingPhotoButton) {
+        pendingPhotoButton.disabled = true;
+      }
+
+      input.click();
+    }
+
+    window.openPhotoPicker = openPhotoPicker;
+
+    function getSelectedJob(jobId) {
+      const effectiveId = jobId || selectedJobId;
+      if (!effectiveId) return null;
+
+      const selectedJob = jobs.find(item => item.id === effectiveId);
+      if (!selectedJob?.id) return null;
+
+      return selectedJob;
+    }
+
+    function usesDriverWorkflowStatus(job = null) {
+      if (job && Object.prototype.hasOwnProperty.call(job, "driver_workflow_status")) {
+        return true;
+      }
+
+      return jobs.some(item =>
+        Object.prototype.hasOwnProperty.call(item, "driver_workflow_status")
+      );
+    }
+
     function podRecipientField(job) {
       if (Object.prototype.hasOwnProperty.call(job, "pod_recipient_name")) {
         return "pod_recipient_name";
@@ -925,6 +972,42 @@ window.mgSupabaseClient = client;
       }
 
       return "other";
+    }
+
+    function cardWorkflowLabel(job) {
+      const status = normalizeJobStatus(job);
+
+      if (status === "assigned" && acceptancePending(job)) {
+        return "NEW";
+      }
+
+      if (status === "assigned" && hasAccepted(job)) {
+        return "ACCEPTED";
+      }
+
+      if (status === "en_route_to_pickup") return "EN ROUTE TO PICKUP";
+      if (status === "arrived_at_pickup") return "AT PICKUP";
+      if (status === "picked_up") return "PICKED UP";
+      if (status === "en_route_to_delivery") return "EN ROUTE TO DELIVERY";
+      if (status === "arrived_at_delivery") return "AT DELIVERY";
+      if (status === "delivered") return "DELIVERED";
+
+      return String(statusLabel(status)).toUpperCase();
+    }
+
+    function recommendedNextStop(job) {
+      const status = normalizeJobStatus(job);
+      if (["picked_up", "en_route_to_delivery", "arrived_at_delivery", "delivered"].includes(status)) {
+        return {
+          label: "Navigate to Delivery",
+          address: job.delivery_address
+        };
+      }
+
+      return {
+        label: "Navigate to Pickup",
+        address: job.pickup_address
+      };
     }
 
     function renderPhotoArea(job, type) {
@@ -983,7 +1066,7 @@ window.mgSupabaseClient = client;
 
             <div class="compact-badges">
               <div class="status">
-                ${escapeHtml(statusLabel(status))}
+                ${escapeHtml(cardWorkflowLabel(job))}
               </div>
 
               ${isNew ? '<div class="new-badge">NEW</div>' : ""}
@@ -1030,34 +1113,34 @@ window.mgSupabaseClient = client;
 
       if (state === "pending") {
         return `
-          <button class="action primary" type="button" onclick="acceptJob('${job.id}')">Accept Job</button>
-          <button class="action directions" type="button" onclick="rejectJob('${job.id}')">Reject Job</button>
+          <button class="action primary" type="button" onclick="acceptJob('${job.id}',this)">Accept Job</button>
+          <button class="action directions" type="button" onclick="rejectJob('${job.id}',this)">Reject Job</button>
         `;
       }
 
       if (state === "accepted") {
         return `
-          <button class="action primary" type="button" onclick="markEnRouteToPickup('${job.id}')">En Route to Pickup</button>
+          <button class="action primary" type="button" onclick="markEnRouteToPickup('${job.id}',this)">En Route to Pickup</button>
         `;
       }
 
       if (state === "pickup_phase") {
         return `
-          <button class="action directions" type="button" onclick="markArrivedAtPickup('${job.id}')">Arrived at Pickup</button>
-          <button class="action primary" type="button" onclick="markPickedUp('${job.id}')">Picked Up</button>
+          <button class="action directions" type="button" onclick="markArrivedAtPickup('${job.id}',this)">Arrived at Pickup</button>
+          <button class="action primary" type="button" onclick="markPickedUp('${job.id}',this)">Picked Up</button>
         `;
       }
 
       if (state === "picked_up") {
         return `
-          <button class="action primary" type="button" onclick="markEnRouteToDelivery('${job.id}')">En Route to Delivery</button>
+          <button class="action primary" type="button" onclick="markEnRouteToDelivery('${job.id}',this)">En Route to Delivery</button>
         `;
       }
 
       if (state === "delivery_phase") {
         return `
-          <button class="action directions" type="button" onclick="markArrivedAtDelivery('${job.id}')">Arrived at Delivery</button>
-          <button class="action primary" type="button" onclick="markDelivered('${job.id}')">Delivered</button>
+          <button class="action directions" type="button" onclick="markArrivedAtDelivery('${job.id}',this)">Arrived at Delivery</button>
+          <button class="action primary" type="button" onclick="markDelivered('${job.id}',this)">Delivered</button>
         `;
       }
 
@@ -1075,11 +1158,13 @@ window.mgSupabaseClient = client;
       const pickupZip = fieldValue(job, ["pickup_zip", "pickup_postal_code", "pickup_postcode"]);
       const deliveryZip = fieldValue(job, ["delivery_zip", "delivery_postal_code", "delivery_postcode"]);
 
+      const navigate = recommendedNextStop(job);
+
       jobModalContent.innerHTML = `
         <h3 id="jobModalTitle" class="modal-title">${escapeHtml(job.job_number)}</h3>
 
         <div class="modal-status-row">
-          <div class="status">${escapeHtml(statusLabel(status))}</div>
+          <div class="status">${escapeHtml(cardWorkflowLabel(job))}</div>
           ${status === "assigned" && acceptancePending(job) ? '<div class="new-badge">NEW</div>' : ""}
         </div>
 
@@ -1102,8 +1187,8 @@ window.mgSupabaseClient = client;
 
         <div class="modal-section-title">Directions</div>
         <div class="button-grid">
+          <button class="action directions" type="button" onclick="window.open('${mapLink(navigate.address)}','_blank')">${escapeHtml(navigate.label)}</button>
           <button class="action directions" type="button" onclick="window.open('${mapLink(job.pickup_address)}','_blank')">Pickup Directions</button>
-          <button class="action directions" type="button" onclick="window.open('${mapLink(job.delivery_address)}','_blank')">Delivery Directions</button>
         </div>
 
         <div class="modal-section-title">Workflow</div>
@@ -1115,7 +1200,7 @@ window.mgSupabaseClient = client;
           <div class="modal-section-title">Pickup Photo</div>
           ${photoInput(job.id, "pickup")}
           <div class="button-grid">
-            <button class="action photo-button" type="button" onclick="document.getElementById('pickupFile-${job.id}').click()">
+            <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','pickup',this)">
               ${job.pickup_photo_url ? "Replace Pickup Photo" : "Take Pickup Photo"}
             </button>
           </div>
@@ -1126,7 +1211,7 @@ window.mgSupabaseClient = client;
           <div class="modal-section-title">Delivery Proof</div>
           ${photoInput(job.id, "delivery")}
           <div class="button-grid">
-            <button class="action photo-button" type="button" onclick="document.getElementById('deliveryFile-${job.id}').click()">
+            <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','delivery',this)">
               ${job.delivery_photo_url ? "Replace Delivery Photo" : "Take Delivery Photo"}
             </button>
           </div>
@@ -1152,10 +1237,14 @@ window.mgSupabaseClient = client;
     }
 
     function openJobDetails(jobId) {
-      const job = jobs.find(item => item.id === jobId);
+      const job = getSelectedJob(jobId);
       if (!job) return;
 
-      activeModalJobId = jobId;
+      if (selectedJobId && selectedJobId !== jobId) {
+        jobModalContent.innerHTML = "";
+      }
+
+      selectedJobId = jobId;
       renderJobDetailsModal(job);
       jobModal.hidden = false;
       document.body.classList.add("modal-open");
@@ -1166,7 +1255,7 @@ window.mgSupabaseClient = client;
     function closeJobDetails(force = false) {
       if (modalBusy && !force) return;
 
-      activeModalJobId = null;
+      selectedJobId = null;
       jobModal.hidden = true;
       document.body.classList.remove("modal-open");
       jobModalContent.innerHTML = "";
@@ -1181,6 +1270,17 @@ window.mgSupabaseClient = client;
     }
 
     function activeJobsSorted() {
+      const priority = job => {
+        const status = normalizeJobStatus(job);
+        if (status === "assigned" && acceptancePending(job)) return 1;
+        if (["assigned", "en_route_to_pickup"].includes(status)) return 2;
+        if (status === "arrived_at_pickup") return 3;
+        if (status === "picked_up") return 4;
+        if (status === "en_route_to_delivery") return 5;
+        if (status === "arrived_at_delivery") return 6;
+        return 7;
+      };
+
       return jobs
         .filter(job => {
           const status = normalizeJobStatus(job);
@@ -1189,17 +1289,11 @@ window.mgSupabaseClient = client;
           return !["delivered", "cancelled"].includes(status) && acceptance !== "rejected";
         })
         .sort((left, right) => {
-          const leftPending = acceptancePending(left) && normalizeJobStatus(left) === "assigned";
-          const rightPending = acceptancePending(right) && normalizeJobStatus(right) === "assigned";
+          const leftPriority = priority(left);
+          const rightPriority = priority(right);
 
-          if (leftPending !== rightPending) {
-            return leftPending ? -1 : 1;
-          }
-
-          if (leftPending && rightPending) {
-            const leftCreated = Date.parse(left.created_at || 0) || 0;
-            const rightCreated = Date.parse(right.created_at || 0) || 0;
-            return rightCreated - leftCreated;
+          if (leftPriority !== rightPriority) {
+            return leftPriority - rightPriority;
           }
 
           const leftPickup = scheduledTimestamp(left);
@@ -1343,8 +1437,8 @@ window.mgSupabaseClient = client;
       jobs = result.data || [];
       renderJobs();
 
-      if (activeModalJobId) {
-        const current = jobs.find(item => item.id === activeModalJobId);
+      if (selectedJobId) {
+        const current = getSelectedJob(selectedJobId);
         const isRejected = String(current?.driver_acceptance_status || "").toLowerCase() === "rejected";
         const isDelivered = normalizeJobStatus(current) === "delivered";
 
@@ -1357,11 +1451,34 @@ window.mgSupabaseClient = client;
     }
 
     async function uploadPhoto(jobId, type, input) {
+      const selectedJob = getSelectedJob(jobId);
+      if (!selectedJob?.id) {
+        if (pendingPhotoButton) {
+          pendingPhotoButton.disabled = false;
+          pendingPhotoButton = null;
+        }
+
+        showJobMessage(jobId, "Selected job could not be found.", "error");
+        return;
+      }
+
       const file = input.files?.[0];
 
-      if (!file) return;
+      if (!file) {
+        if (pendingPhotoButton) {
+          pendingPhotoButton.disabled = false;
+          pendingPhotoButton = null;
+        }
+
+        return;
+      }
 
       if (!file.type.startsWith("image/")) {
+        if (pendingPhotoButton) {
+          pendingPhotoButton.disabled = false;
+          pendingPhotoButton = null;
+        }
+
         showJobMessage(jobId, "Please choose an image.", "error");
         return;
       }
@@ -1389,6 +1506,11 @@ window.mgSupabaseClient = client;
 
       if (uploadResult.error) {
         setModalBusy(false);
+        if (pendingPhotoButton) {
+          pendingPhotoButton.disabled = false;
+          pendingPhotoButton = null;
+        }
+
         showJobMessage(
           jobId,
           uploadResult.error.message,
@@ -1417,11 +1539,16 @@ window.mgSupabaseClient = client;
       const updateResult = await client
         .from("quotes")
         .update(updateData)
-        .eq("id", jobId)
+        .eq("id", selectedJob.id)
         .eq("assigned_driver_id", driver.id);
 
       if (updateResult.error) {
         setModalBusy(false);
+        if (pendingPhotoButton) {
+          pendingPhotoButton.disabled = false;
+          pendingPhotoButton = null;
+        }
+
         showJobMessage(
           jobId,
           updateResult.error.message,
@@ -1434,14 +1561,30 @@ window.mgSupabaseClient = client;
       showJobMessage(jobId, "Photo uploaded successfully.", "info");
       await loadJobs();
       setModalBusy(false);
+
+      if (pendingPhotoButton) {
+        pendingPhotoButton.disabled = false;
+        pendingPhotoButton = null;
+      }
     }
 
     window.uploadPhoto = uploadPhoto;
 
     async function updateJob(jobId, changes, loadingText, options = {}) {
       const closeOnSuccess = Boolean(options.closeOnSuccess);
+      const buttonElement = options.buttonElement || null;
+      const selectedJob = getSelectedJob(jobId);
+
+      if (!selectedJob?.id) {
+        showJobMessage(jobId, "Selected job could not be found.", "error");
+        return false;
+      }
 
       setModalBusy(true);
+
+      if (buttonElement) {
+        buttonElement.disabled = true;
+      }
 
       if (loadingText) {
         showJobMessage(jobId, loadingText, "info");
@@ -1450,11 +1593,16 @@ window.mgSupabaseClient = client;
       const result = await client
         .from("quotes")
         .update(changes)
-        .eq("id", jobId)
+        .eq("id", selectedJob.id)
         .eq("assigned_driver_id", driver.id);
 
       if (result.error) {
         setModalBusy(false);
+
+        if (buttonElement) {
+          buttonElement.disabled = false;
+        }
+
         showJobMessage(jobId, result.error.message, "error");
         return false;
       }
@@ -1466,85 +1614,122 @@ window.mgSupabaseClient = client;
       }
 
       setModalBusy(false);
+
+      if (buttonElement) {
+        buttonElement.disabled = false;
+      }
+
       return true;
     }
 
-    async function acceptJob(jobId) {
+    async function acceptJob(jobId, buttonElement) {
       await updateJob(
         jobId,
         { driver_acceptance_status: "accepted" },
-        "Accepting job…"
+        "Accepting job…",
+        { buttonElement }
       );
     }
 
     window.acceptJob = acceptJob;
 
-    async function rejectJob(jobId) {
+    async function rejectJob(jobId, buttonElement) {
       await updateJob(
         jobId,
         { driver_acceptance_status: "rejected" },
         "Rejecting job…",
-        { closeOnSuccess: true }
+        {
+          closeOnSuccess: true,
+          buttonElement
+        }
       );
     }
 
     window.rejectJob = rejectJob;
 
-    async function markEnRouteToPickup(jobId) {
+    function workflowUpdate(status) {
+      return selectedJob => {
+        const changes = { status };
+
+        if (usesDriverWorkflowStatus(selectedJob)) {
+          changes.driver_workflow_status = status;
+        }
+
+        return changes;
+      };
+    }
+
+    async function markEnRouteToPickup(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
       await updateJob(
         jobId,
-        { status: "en_route_to_pickup" },
-        "Updating job status…"
+        workflowUpdate("en_route_to_pickup")(selectedJob),
+        "Updating job status…",
+        { buttonElement }
       );
     }
 
     window.markEnRouteToPickup = markEnRouteToPickup;
 
-    async function markArrivedAtPickup(jobId) {
+    async function markArrivedAtPickup(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
       await updateJob(
         jobId,
-        { status: "arrived_at_pickup" },
-        "Updating job status…"
+        workflowUpdate("arrived_at_pickup")(selectedJob),
+        "Updating job status…",
+        { buttonElement }
       );
     }
 
     window.markArrivedAtPickup = markArrivedAtPickup;
 
-    async function markPickedUp(jobId) {
+    async function markPickedUp(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
       await updateJob(
         jobId,
-        { status: "picked_up" },
-        "Updating job status…"
+        workflowUpdate("picked_up")(selectedJob),
+        "Updating job status…",
+        { buttonElement }
       );
     }
 
     window.markPickedUp = markPickedUp;
 
-    async function markEnRouteToDelivery(jobId) {
+    async function markEnRouteToDelivery(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
       await updateJob(
         jobId,
-        { status: "en_route_to_delivery" },
-        "Updating job status…"
+        workflowUpdate("en_route_to_delivery")(selectedJob),
+        "Updating job status…",
+        { buttonElement }
       );
     }
 
     window.markEnRouteToDelivery = markEnRouteToDelivery;
 
-    async function markArrivedAtDelivery(jobId) {
+    async function markArrivedAtDelivery(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
       await updateJob(
         jobId,
-        { status: "arrived_at_delivery" },
-        "Updating job status…"
+        workflowUpdate("arrived_at_delivery")(selectedJob),
+        "Updating job status…",
+        { buttonElement }
       );
     }
 
     window.markArrivedAtDelivery = markArrivedAtDelivery;
 
-    async function markDelivered(jobId) {
-      const job = jobs.find(item => item.id === jobId);
+    async function markDelivered(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
+
+      if (!selectedJob?.id) {
+        showJobMessage(jobId, "Selected job could not be found.", "error");
+        return;
+      }
+
       const recipientInput = document.getElementById("podRecipientModal-" + jobId);
       const recipientName = String(recipientInput?.value || "").trim();
-      const hasPhoto = Boolean(job?.delivery_photo_url);
+      const hasPhoto = Boolean(selectedJob?.delivery_photo_url);
 
       if (!hasPhoto && !recipientName) {
         showJobMessage(
@@ -1557,13 +1742,22 @@ window.mgSupabaseClient = client;
       }
 
       setModalBusy(true);
+
+      if (buttonElement) {
+        buttonElement.disabled = true;
+      }
+
       showJobMessage(jobId, "Completing delivery…", "info");
 
-      const podField = podRecipientField(job);
+      const podField = podRecipientField(selectedJob);
       const changes = {
         status: "delivered",
         completed_at: new Date().toISOString()
       };
+
+      if (usesDriverWorkflowStatus(selectedJob)) {
+        changes.driver_workflow_status = "delivered";
+      }
 
       if (recipientName) {
         changes[podField] = recipientName;
@@ -1572,11 +1766,16 @@ window.mgSupabaseClient = client;
       const result = await client
         .from("quotes")
         .update(changes)
-        .eq("id", jobId)
+        .eq("id", selectedJob.id)
         .eq("assigned_driver_id", driver.id);
 
       if (result.error) {
         setModalBusy(false);
+
+        if (buttonElement) {
+          buttonElement.disabled = false;
+        }
+
         showJobMessage(jobId, result.error.message, "error");
         return;
       }
@@ -1584,6 +1783,10 @@ window.mgSupabaseClient = client;
       await loadJobs();
       closeJobDetails(true);
       setModalBusy(false);
+
+      if (buttonElement) {
+        buttonElement.disabled = false;
+      }
     }
 
     window.markDelivered = markDelivered;
