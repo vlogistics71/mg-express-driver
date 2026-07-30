@@ -1301,7 +1301,11 @@ window.mgSupabaseClient = client;
     }
 
     function buildSuggestedRouteStops() {
-      return jobs
+      const sourceJobs = Array.isArray(jobs)
+        ? jobs.filter(Boolean)
+        : [];
+
+      return sourceJobs
         .filter(job => {
           const status = normalizeJobStatus(job);
           const acceptance = String(job.driver_acceptance_status || "").toLowerCase();
@@ -1408,71 +1412,81 @@ window.mgSupabaseClient = client;
     window.toggleNextStopDetails = toggleNextStopDetails;
 
     function renderNextSuggestedStopCard() {
-      const stop = selectNextSuggestedStop();
+      try {
+        const stop = selectNextSuggestedStop();
 
-      if (!stop) {
+        if (!stop) {
+          nextSuggestedStopBox.innerHTML = "";
+          return;
+        }
+
+        const stopPrefix = stop.stopType === "DELIVERY" ? "delivery" : "pickup";
+        const suite = fieldValue(stop.job, [
+          stopPrefix + "_suite",
+          stopPrefix + "_floor",
+          stopPrefix + "_unit",
+          stopPrefix + "_suite_floor"
+        ]);
+
+        nextSuggestedStopBox.innerHTML = `
+          <article class="next-stop-card">
+            <div class="next-stop-title">Next Suggested Stop</div>
+
+            <div class="next-stop-row">
+              <div class="next-stop-main">
+                <div class="next-stop-type">${escapeHtml(stop.stopType)}</div>
+                <div class="next-stop-job">${escapeHtml(stop.jobNumber || "Job")}</div>
+                <div class="next-stop-city">${escapeHtml(stop.city)}</div>
+              </div>
+
+              <div class="next-stop-controls">
+                <button class="next-stop-nav" type="button" onclick="navigateForStop('${stop.jobId}','${stop.stopType}')">Navigate</button>
+                <button class="next-stop-expand" type="button" onclick="toggleNextStopDetails()">${nextStopExpanded ? "^" : "v"}</button>
+              </div>
+            </div>
+
+            ${nextStopExpanded ? `
+              <div class="next-stop-details">
+                <div class="next-stop-detail"><strong>Address:</strong> ${escapeHtml(stop.destination || "Not available")}</div>
+                <div class="next-stop-detail"><strong>Suite/Floor:</strong> ${escapeHtml(suite || "Not provided")}</div>
+                <div class="next-stop-detail"><strong>Delivery Speed:</strong> ${escapeHtml(deliverySpeedOrTime(stop.job))}</div>
+                <div class="next-stop-detail"><strong>Customer:</strong> ${escapeHtml(stop.job.customer_name || "Customer")}</div>
+                <button class="next-stop-open" type="button" onclick="openJobDetails('${stop.jobId}')">Open Job</button>
+              </div>
+            ` : ""}
+          </article>
+        `;
+      } catch (error) {
         nextSuggestedStopBox.innerHTML = "";
-        return;
+        console.error("Failed to render next suggested stop", error);
       }
-
-      const stopPrefix = stop.stopType === "DELIVERY" ? "delivery" : "pickup";
-      const suite = fieldValue(stop.job, [
-        stopPrefix + "_suite",
-        stopPrefix + "_floor",
-        stopPrefix + "_unit",
-        stopPrefix + "_suite_floor"
-      ]);
-
-      nextSuggestedStopBox.innerHTML = `
-        <article class="next-stop-card">
-          <div class="next-stop-title">Next Suggested Stop</div>
-
-          <div class="next-stop-row">
-            <div class="next-stop-main">
-              <div class="next-stop-type">${escapeHtml(stop.stopType)}</div>
-              <div class="next-stop-job">${escapeHtml(stop.jobNumber || "Job")}</div>
-              <div class="next-stop-city">${escapeHtml(stop.city)}</div>
-            </div>
-
-            <div class="next-stop-controls">
-              <button class="next-stop-nav" type="button" onclick="navigateForStop('${stop.jobId}','${stop.stopType}')">Navigate</button>
-              <button class="next-stop-expand" type="button" onclick="toggleNextStopDetails()">${nextStopExpanded ? "^" : "v"}</button>
-            </div>
-          </div>
-
-          ${nextStopExpanded ? `
-            <div class="next-stop-details">
-              <div class="next-stop-detail"><strong>Address:</strong> ${escapeHtml(stop.destination || "Not available")}</div>
-              <div class="next-stop-detail"><strong>Suite/Floor:</strong> ${escapeHtml(suite || "Not provided")}</div>
-              <div class="next-stop-detail"><strong>Delivery Speed:</strong> ${escapeHtml(deliverySpeedOrTime(stop.job))}</div>
-              <div class="next-stop-detail"><strong>Customer:</strong> ${escapeHtml(stop.job.customer_name || "Customer")}</div>
-              <button class="next-stop-open" type="button" onclick="openJobDetails('${stop.jobId}')">Open Job</button>
-            </div>
-          ` : ""}
-        </article>
-      `;
     }
 
     function openSuggestedRouteModal() {
-      const stops = buildSuggestedRouteStops();
+      try {
+        const stops = buildSuggestedRouteStops();
 
-      routeModalList.innerHTML = stops.length
-        ? stops.map(stop => `
-            <button class="route-stop" type="button" onclick="openRouteStopJob('${stop.jobId}')">
-              <div class="route-stop-index">${stop.index}</div>
-              <div>
-                <div class="route-stop-type">${escapeHtml(stop.stopType)}</div>
-                <div class="route-stop-job">${escapeHtml(stop.jobNumber || "Job")}</div>
-                <div class="route-stop-place">${escapeHtml(stop.city)}</div>
-                <div class="route-stop-distance">${escapeHtml(stop.distance)}</div>
-              </div>
-              <div class="compact-chevron">></div>
-            </button>
-          `).join("")
-        : '<div class="empty">No active stops right now.</div>';
+        routeModalList.innerHTML = stops.length
+          ? stops.map(stop => `
+              <button class="route-stop" type="button" onclick="openRouteStopJob('${stop.jobId}')">
+                <div class="route-stop-index">${stop.index}</div>
+                <div>
+                  <div class="route-stop-type">${escapeHtml(stop.stopType)}</div>
+                  <div class="route-stop-job">${escapeHtml(stop.jobNumber || "Job")}</div>
+                  <div class="route-stop-place">${escapeHtml(stop.city)}</div>
+                  <div class="route-stop-distance">${escapeHtml(stop.distance)}</div>
+                </div>
+                <div class="compact-chevron">></div>
+              </button>
+            `).join("")
+          : '<div class="empty">No active stops right now.</div>';
 
-      routeModal.hidden = false;
-      document.body.classList.add("modal-open");
+        routeModal.hidden = false;
+        document.body.classList.add("modal-open");
+      } catch (error) {
+        console.error("Failed to open suggested route", error);
+        showToast("Suggested route unavailable", "error");
+      }
     }
 
     window.openSuggestedRouteModal = openSuggestedRouteModal;
@@ -1491,9 +1505,6 @@ window.mgSupabaseClient = client;
     }
 
     window.openRouteStopJob = openRouteStopJob;
-
-      return selectedJob;
-    }
 
     function usesDriverWorkflowStatus(job = null) {
       if (job && Object.prototype.hasOwnProperty.call(job, "driver_workflow_status")) {
@@ -1919,42 +1930,64 @@ window.mgSupabaseClient = client;
     function renderJobs() {
       updateEarnings();
 
-      const active = activeJobsSorted();
-      renderNextSuggestedStopCard();
+      let active = [];
+      let completed = [];
 
-      const completed = jobs
-        .filter(job => normalizeJobStatus(job) === "delivered")
-        .slice(0, 30);
+      try {
+        active = activeJobsSorted();
+      } catch (error) {
+        console.error("Failed to sort active jobs", error);
+      }
 
-      activeJobsBox.innerHTML = active.length
-        ? active.map(compactJobCard).join("")
-        : '<div class="empty">No active jobs are currently assigned.</div>';
+      try {
+        completed = jobs
+          .filter(job => normalizeJobStatus(job) === "delivered")
+          .slice(0, 30);
+      } catch (error) {
+        console.error("Failed to collect completed jobs", error);
+      }
 
-      completedJobsBox.innerHTML = completed.length
-        ? completed.map(job => `
-            <article class="history-card">
-              <div class="history-row">
-                <div>
-                  <div class="job-number">
-                    ${escapeHtml(job.job_number)}
-                  </div>
+      try {
+        activeJobsBox.innerHTML = active.length
+          ? active.map(compactJobCard).join("")
+          : '<div class="empty">No active jobs are currently assigned.</div>';
+      } catch (error) {
+        console.error("Failed to render active jobs", error);
+        activeJobsBox.innerHTML = '<div class="message error">Unable to render assigned jobs.</div>';
+      }
 
+      try {
+        completedJobsBox.innerHTML = completed.length
+          ? completed.map(job => `
+              <article class="history-card">
+                <div class="history-row">
                   <div>
-                    ${escapeHtml(job.customer_name || "Customer")}
+                    <div class="job-number">
+                      ${escapeHtml(job.job_number)}
+                    </div>
+
+                    <div>
+                      ${escapeHtml(job.customer_name || "Customer")}
+                    </div>
+
+                    <div class="history-date">
+                      ${escapeHtml(formatDate(job.completed_at))}
+                    </div>
                   </div>
 
-                  <div class="history-date">
-                    ${escapeHtml(formatDate(job.completed_at))}
+                  <div class="history-pay">
+                    ${money(job.driver_pay)}
                   </div>
                 </div>
+              </article>
+            `).join("")
+          : '<div class="empty">No completed jobs yet.</div>';
+      } catch (error) {
+        console.error("Failed to render completed jobs", error);
+        completedJobsBox.innerHTML = '<div class="message error">Unable to render completed jobs.</div>';
+      }
 
-                <div class="history-pay">
-                  ${money(job.driver_pay)}
-                </div>
-              </div>
-            </article>
-          `).join("")
-        : '<div class="empty">No completed jobs yet.</div>';
+      renderNextSuggestedStopCard();
     }
 
     function showJobMessage(jobId, text, type) {
@@ -2039,31 +2072,49 @@ window.mgSupabaseClient = client;
       activeJobsBox.innerHTML =
         '<div class="empty">Loading assigned jobs…</div>';
 
-      const result = await client
-        .from("quotes")
-        .select("*")
-        .eq("assigned_driver_id", driver.id)
-        .order("created_at", { ascending: false });
+      completedJobsBox.innerHTML =
+        '<div class="empty">Loading completed jobs…</div>';
 
-      if (result.error) {
+      try {
+        const result = await client
+          .from("quotes")
+          .select("*")
+          .eq("assigned_driver_id", driver.id)
+          .order("created_at", { ascending: false });
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        jobs = result.data || [];
+        renderJobs();
+
+        if (selectedJobId) {
+          const current = getSelectedJob(selectedJobId);
+          const isRejected = String(current?.driver_acceptance_status || "").toLowerCase() === "rejected";
+          const isDelivered = normalizeJobStatus(current) === "delivered";
+
+          if (!current || isRejected || isDelivered) {
+            closeJobDetails(true);
+          } else {
+            renderJobDetailsModal(current);
+          }
+        }
+      } catch (error) {
+        const message = escapeHtml(error?.message || "Unable to load jobs.");
         activeJobsBox.innerHTML =
-          `<div class="message error">${escapeHtml(result.error.message)}</div>`;
+          `<div class="message error">${message}</div>`;
+        completedJobsBox.innerHTML =
+          `<div class="message error">${message}</div>`;
+        nextSuggestedStopBox.innerHTML = "";
+        showToast(error?.message || "Failed to load jobs", "error");
+      } finally {
+        if (activeJobsBox.innerHTML.includes("Loading assigned jobs")) {
+          activeJobsBox.innerHTML = '<div class="empty">No active jobs are currently assigned.</div>';
+        }
 
-        return;
-      }
-
-      jobs = result.data || [];
-      renderJobs();
-
-      if (selectedJobId) {
-        const current = getSelectedJob(selectedJobId);
-        const isRejected = String(current?.driver_acceptance_status || "").toLowerCase() === "rejected";
-        const isDelivered = normalizeJobStatus(current) === "delivered";
-
-        if (!current || isRejected || isDelivered) {
-          closeJobDetails(true);
-        } else {
-          renderJobDetailsModal(current);
+        if (completedJobsBox.innerHTML.includes("Loading completed jobs")) {
+          completedJobsBox.innerHTML = '<div class="empty">No completed jobs yet.</div>';
         }
       }
     }
