@@ -981,6 +981,7 @@ window.mgSupabaseClient = client;
     let modalBusy = false;
     let pendingPhotoButton = null;
     let nextStopExpanded = false;
+    const READY_TO_DISPATCH_STATUS = "ready";
 
     function escapeHtml(value) {
       const div = document.createElement("div");
@@ -2310,16 +2311,83 @@ window.mgSupabaseClient = client;
     window.acceptJob = acceptJob;
 
     async function rejectJob(jobId, buttonElement) {
-      await updateJob(
-        jobId,
-        { driver_acceptance_status: "rejected" },
-        "Rejecting job…",
-        {
-          closeOnSuccess: true,
-          buttonElement,
-          successToast: "Job rejected"
+      const selectedJob = getSelectedJob(jobId);
+
+      if (!selectedJob?.id) {
+        showJobMessage(jobId, "Selected job could not be found.", "error");
+        return;
+      }
+
+      setModalBusy(true);
+
+      if (buttonElement) {
+        buttonElement.disabled = true;
+      }
+
+      showJobMessage(jobId, "Rejecting job…", "info");
+
+      try {
+        const rejectedAt = new Date().toISOString();
+
+        const result = await client
+          .from("quotes")
+          .update({
+            assigned_driver_id: null,
+            status: READY_TO_DISPATCH_STATUS,
+            driver_acceptance_status: "rejected",
+            driver_rejected_at: rejectedAt,
+            driver_workflow_status: null,
+            driver_accepted_at: null
+          })
+          .eq("id", selectedJob.id)
+          .select()
+          .single();
+
+        if (result.error) {
+          throw result.error;
         }
-      );
+
+        const updatedJob = result.data;
+
+        if (!updatedJob) {
+          throw new Error("Reject update returned no row.");
+        }
+
+        if (updatedJob.assigned_driver_id !== null) {
+          throw new Error("Reject verification failed: assigned_driver_id was not cleared.");
+        }
+
+        if (String(updatedJob.status || "") !== READY_TO_DISPATCH_STATUS) {
+          throw new Error(
+            "Reject verification failed: status was \"" +
+            String(updatedJob.status || "") +
+            "\" instead of \"" + READY_TO_DISPATCH_STATUS + "\"."
+          );
+        }
+
+        if (String(updatedJob.driver_acceptance_status || "") !== "rejected") {
+          throw new Error("Reject verification failed: driver_acceptance_status is not rejected.");
+        }
+
+        if (updatedJob.driver_workflow_status !== null) {
+          throw new Error("Reject verification failed: driver_workflow_status was not cleared.");
+        }
+
+        console.log("Rejected job returned to dispatch:", updatedJob);
+
+        await loadJobs();
+        closeJobDetails(true);
+        showToast("Job rejected and returned to dispatch", "success");
+      } catch (error) {
+        const message = error?.message || "Unable to reject job.";
+        showJobMessage(jobId, message, "error");
+      } finally {
+        setModalBusy(false);
+
+        if (buttonElement) {
+          buttonElement.disabled = false;
+        }
+      }
     }
 
     window.rejectJob = rejectJob;
