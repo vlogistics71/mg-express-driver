@@ -377,6 +377,7 @@
     .compact-job {
       background: white;
       border: 1px solid var(--line);
+      border-left: 6px solid #d7e2de;
       border-radius: 14px;
       padding: 11px;
       box-shadow: 0 6px 16px rgba(0,0,0,.06);
@@ -405,6 +406,39 @@
       display: flex;
       gap: 8px;
       align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .compact-job.category-medical { border-left-color: #d34545; }
+    .compact-job.category-pallet { border-left-color: #8a5a2f; }
+    .compact-job.category-legal { border-left-color: #c6a000; }
+    .compact-job.category-general { border-left-color: #d7e2de; }
+    .compact-job.category-special { border-left-color: #e7862f; }
+
+    .category-badge {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .02em;
+      text-transform: uppercase;
+      border: 1px solid var(--line);
+      background: #f8fcfa;
+      color: var(--dark);
+      white-space: nowrap;
+    }
+
+    .return-badge {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      background: #fff1df;
+      color: #a85d00;
+      border: 1px solid #ffd3a6;
+      white-space: nowrap;
     }
 
     .status {
@@ -667,6 +701,47 @@
       color: var(--muted);
       font-size: 13px;
       line-height: 1.4;
+    }
+
+    .return-details {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfdfc;
+      overflow: hidden;
+    }
+
+    .return-details summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 11px 12px;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .return-details summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .return-content {
+      border-top: 1px solid var(--line);
+      padding: 10px 12px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .return-item {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .return-item strong {
+      color: var(--dark);
     }
 
     .action {
@@ -1603,6 +1678,121 @@ window.mgSupabaseClient = client;
       return String(statusLabel(status)).toUpperCase();
     }
 
+    function normalizeJobCategory(job) {
+      const raw = String(job?.job_category || "").trim().toLowerCase();
+
+      if (!raw) return "general";
+
+      if (raw.includes("medical")) return "medical";
+      if (raw.includes("pallet")) return "pallet";
+      if (raw.includes("legal")) return "legal";
+      if (raw.includes("special")) return "special";
+
+      return "general";
+    }
+
+    function jobCategoryLabel(job) {
+      const category = normalizeJobCategory(job);
+
+      if (category === "medical") return "Medical";
+      if (category === "pallet") return "Pallet";
+      if (category === "legal") return "Legal";
+      if (category === "special") return "Special";
+
+      return "General";
+    }
+
+    function categoryCardClass(job) {
+      return "category-" + normalizeJobCategory(job);
+    }
+
+    function isReturnRequired(job) {
+      const value = String(job?.return_required ?? "").toLowerCase();
+      return value === "true" || value === "1" || value === "yes";
+    }
+
+    function returnDestinationLabel(job) {
+      const type = String(job?.return_location_type || "").toLowerCase();
+
+      if (type === "same_as_pickup") {
+        return "Original Pickup";
+      }
+
+      if (type) {
+        return type.replaceAll("_", " ");
+      }
+
+      return "Return Address";
+    }
+
+    function returnDestinationAddress(job) {
+      const type = String(job?.return_location_type || "").toLowerCase();
+
+      if (type === "same_as_pickup") {
+        return [
+          fieldValue(job, ["pickup_address"]),
+          fieldValue(job, ["pickup_city", "pickupCity"]),
+          fieldValue(job, ["pickup_state", "pickupState"]),
+          fieldValue(job, ["pickup_zip", "pickup_postal_code", "pickup_postcode"])
+        ].filter(Boolean).join(", ");
+      }
+
+      return [
+        fieldValue(job, ["return_address"]),
+        fieldValue(job, ["return_city", "returnCity"]),
+        fieldValue(job, ["return_state", "returnState"]),
+        fieldValue(job, ["return_zip", "return_postal_code", "return_postcode"])
+      ].filter(Boolean).join(", ");
+    }
+
+    function renderReturnDetails(job) {
+      if (!isReturnRequired(job)) {
+        return "";
+      }
+
+      const returnAddress = returnDestinationAddress(job);
+      const returnSuite = fieldValue(job, ["return_suite_floor"]);
+      const returnZip = fieldValue(job, ["return_zip", "return_postal_code", "return_postcode"]);
+      const returnTiming = fieldValue(job, ["return_timing"]);
+
+      return `
+        <div class="modal-section-title">Return Service</div>
+        <details class="return-details">
+          <summary>
+            Return Service Details
+            <span>▼</span>
+          </summary>
+
+          <div class="return-content">
+            <div class="return-item">
+              <strong>Return destination type:</strong>
+              ${escapeHtml(safeText(returnDestinationLabel(job)))}
+            </div>
+
+            <div class="return-item">
+              <strong>Return address:</strong>
+              ${escapeHtml(safeText(returnAddress))}
+            </div>
+
+            <div class="return-item">
+              <strong>Return suite/floor:</strong>
+              ${escapeHtml(safeText(returnSuite))}
+            </div>
+
+            <div class="return-item">
+              <strong>Return ZIP:</strong>
+              ${escapeHtml(safeText(returnZip))}
+            </div>
+
+            <div class="return-item">
+              <strong>Return timing:</strong>
+              ${escapeHtml(safeText(returnTiming))}
+            </div>
+          </div>
+        </details>
+      `;
+    }
+
     function recommendedNextStop(job) {
       const status = normalizeJobStatus(job);
       if (["picked_up", "en_route_to_delivery", "arrived_at_delivery", "delivered"].includes(status)) {
@@ -1658,7 +1848,7 @@ window.mgSupabaseClient = client;
     function compactJobCard(job) {
       return `
         <article
-          class="compact-job"
+          class="compact-job ${categoryCardClass(job)}"
           role="button"
           tabindex="0"
           onclick="openJobDetails('${job.id}')"
@@ -1669,6 +1859,14 @@ window.mgSupabaseClient = client;
               <div class="status ${statusBadgeClass(job)}">
                 ${escapeHtml(cardWorkflowLabel(job))}
               </div>
+
+              <div class="category-badge">
+                ${escapeHtml(jobCategoryLabel(job))}
+              </div>
+
+              ${isReturnRequired(job)
+                ? '<div class="return-badge">Return Required</div>'
+                : ""}
             </div>
 
             <div class="compact-chevron">></div>
@@ -1776,17 +1974,26 @@ window.mgSupabaseClient = client;
       const deliveryNotes = fieldValue(job, ["delivery_notes", "special_instructions"]);
       const pickupPhone = fieldValue(job, ["pickup_phone", "pickup_contact_phone"]);
       const customerPhone = fieldValue(job, ["customer_phone", "phone", "customer_phone_number"]);
+      const deliveryType = fieldValue(job, ["delivery_type"]);
+      const serviceLevel = fieldValue(job, ["service_level"]);
 
       jobModalContent.innerHTML = `
         <h3 id="jobModalTitle" class="modal-title">${escapeHtml(job.job_number)}</h3>
 
         <div class="modal-status-row">
           <div class="status ${statusBadgeClass(job)}">${escapeHtml(cardWorkflowLabel(job))}</div>
+          <div class="category-badge">${escapeHtml(jobCategoryLabel(job))}</div>
+          ${isReturnRequired(job)
+            ? '<div class="return-badge">Return Required</div>'
+            : ""}
         </div>
 
         <div class="modal-grid">
           <div class="modal-item"><div class="modal-label">Customer</div><div class="modal-value">${escapeHtml(safeText(job.customer_name, "Customer"))}</div></div>
           <div class="modal-item"><div class="modal-label">Package Type</div><div class="modal-value">${escapeHtml(safeText(job.package_type))}</div></div>
+          <div class="modal-item"><div class="modal-label">Delivery Type</div><div class="modal-value">${escapeHtml(safeText(deliveryType))}</div></div>
+          <div class="modal-item"><div class="modal-label">Service Level</div><div class="modal-value">${escapeHtml(safeText(serviceLevel))}</div></div>
+          <div class="modal-item"><div class="modal-label">Delivery Speed</div><div class="modal-value">${escapeHtml(safeText(job.delivery_speed, deliverySpeedOrTime(job)))}</div></div>
         </div>
 
         <div class="modal-section-title">Pickup</div>
@@ -1807,6 +2014,8 @@ window.mgSupabaseClient = client;
           <div class="modal-item"><div class="modal-label">Recipient</div><div class="modal-value">${escapeHtml(safeText(podRecipientValue(job)))}</div></div>
           <div class="modal-item"><div class="modal-label">Delivery Notes</div><div class="modal-value">${escapeHtml(safeText(deliveryNotes))}</div></div>
         </div>
+
+        ${renderReturnDetails(job)}
 
         <div class="modal-divider-arrow">↓</div>
 
