@@ -70,6 +70,13 @@
       color: var(--coral);
     }
 
+    .brand-subtitle {
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
     .driver-email {
       margin-top: 6px;
       font-size: 12px;
@@ -90,13 +97,14 @@
     .container {
       width: min(900px, 100%);
       margin: auto;
-      padding: 28px 18px 60px;
+      padding: 22px 18px 50px;
     }
 
     .eyebrow {
       color: var(--muted);
-      font-size: 18px;
-      margin-bottom: 5px;
+      font-size: 22px;
+      font-weight: 800;
+      margin-bottom: 6px;
     }
 
     h1 {
@@ -112,29 +120,34 @@
 
     .earnings {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0,1fr));
-      gap: 13px;
-      margin-bottom: 24px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 20px;
     }
 
     .earning-card {
       background: white;
       border: 1px solid var(--line);
-      border-radius: 19px;
-      padding: 19px;
-      box-shadow: 0 8px 24px rgba(0,0,0,.04);
+      border-radius: 16px;
+      padding: 14px;
+      min-height: 124px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.05);
+      display: grid;
+      align-content: space-between;
     }
 
     .earning-amount {
       color: var(--green);
-      font-size: 29px;
+      font-size: 31px;
       font-weight: 900;
+      line-height: 1.05;
     }
 
     .earning-label {
       color: var(--muted);
-      margin-top: 5px;
-      font-size: 14px;
+      margin-top: 4px;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .section {
@@ -890,7 +903,7 @@
 
     @media (max-width: 650px) {
       .earnings {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .workflow-grid,
@@ -899,7 +912,15 @@
       }
 
       h1 {
-        font-size: 38px;
+        font-size: 34px;
+      }
+
+      .eyebrow {
+        font-size: 20px;
+      }
+
+      .earning-card {
+        min-height: 112px;
       }
 
       .compact-job {
@@ -936,7 +957,7 @@
   <header class="topbar">
     <div>
       <div class="brand">MG <span>EXPRESS</span> DRIVER</div>
-      <div class="driver-email" id="driverEmail"></div>
+      <div class="brand-subtitle">Driver Dashboard</div>
     </div>
 
     <button class="signout" id="signOutButton" type="button">
@@ -987,15 +1008,6 @@
       </div>
     </section>
 
-    <section class="section">
-      <div class="section-heading">
-        <h2>Completed Jobs</h2>
-      </div>
-
-      <div id="completedJobs" class="job-list">
-        <div class="empty">Loading completed jobs…</div>
-      </div>
-    </section>
   </main>
 
   <div id="jobModal" class="job-modal" hidden>
@@ -1036,7 +1048,6 @@ window.mgSupabaseClient = client;
 
     const activeJobsBox = document.getElementById("activeJobs");
     const nextSuggestedStopBox = document.getElementById("nextSuggestedStop");
-    const completedJobsBox = document.getElementById("completedJobs");
     const jobModal = document.getElementById("jobModal");
     const jobModalContent = document.getElementById("jobModalContent");
     const jobModalBackdrop = document.getElementById("jobModalBackdrop");
@@ -1149,6 +1160,19 @@ window.mgSupabaseClient = client;
 
     function completedDate(job) {
       return new Date(job.completed_at || job.created_at);
+    }
+
+    function firstName(value) {
+      const fullName = String(value || "").trim();
+      if (!fullName) return "";
+      return fullName.split(/\s+/)[0] || "";
+    }
+
+    function greetingText(now) {
+      const hour = now.getHours();
+      if (hour >= 5 && hour < 12) return "Good Morning";
+      if (hour >= 12 && hour < 17) return "Good Afternoon";
+      return "Good Evening";
     }
 
     function updateEarnings() {
@@ -2140,20 +2164,11 @@ window.mgSupabaseClient = client;
       updateEarnings();
 
       let active = [];
-      let completed = [];
 
       try {
         active = activeJobsSorted();
       } catch (error) {
         console.error("Failed to sort active jobs", error);
-      }
-
-      try {
-        completed = jobs
-          .filter(job => normalizeJobStatus(job) === "delivered")
-          .slice(0, 30);
-      } catch (error) {
-        console.error("Failed to collect completed jobs", error);
       }
 
       try {
@@ -2163,37 +2178,6 @@ window.mgSupabaseClient = client;
       } catch (error) {
         console.error("Failed to render active jobs", error);
         activeJobsBox.innerHTML = '<div class="message error">Unable to render assigned jobs.</div>';
-      }
-
-      try {
-        completedJobsBox.innerHTML = completed.length
-          ? completed.map(job => `
-              <article class="history-card">
-                <div class="history-row">
-                  <div>
-                    <div class="job-number">
-                      ${escapeHtml(job.job_number)}
-                    </div>
-
-                    <div>
-                      ${escapeHtml(job.customer_name || "Customer")}
-                    </div>
-
-                    <div class="history-date">
-                      ${escapeHtml(formatDate(job.completed_at))}
-                    </div>
-                  </div>
-
-                  <div class="history-pay">
-                    ${money(job.driver_pay)}
-                  </div>
-                </div>
-              </article>
-            `).join("")
-          : '<div class="empty">No completed jobs yet.</div>';
-      } catch (error) {
-        console.error("Failed to render completed jobs", error);
-        completedJobsBox.innerHTML = '<div class="message error">Unable to render completed jobs.</div>';
       }
 
       renderNextSuggestedStopCard();
@@ -2226,9 +2210,6 @@ window.mgSupabaseClient = client;
         location.replace("/index.html");
         return false;
       }
-
-      document.getElementById("driverEmail").textContent =
-        currentSession.user.email || "";
 
       const profileResult = await client
         .from("profiles")
@@ -2271,8 +2252,10 @@ window.mgSupabaseClient = client;
   })
 );
 
+      const name = firstName(driver.full_name);
+      const greeting = greetingText(new Date());
       document.getElementById("welcomeText").textContent =
-        "Welcome, " + (driver.full_name || "Driver");
+        name ? `${greeting}, ${name}` : greeting;
 
       return true;
     }
@@ -2280,9 +2263,6 @@ window.mgSupabaseClient = client;
     async function loadJobs() {
       activeJobsBox.innerHTML =
         '<div class="empty">Loading assigned jobs…</div>';
-
-      completedJobsBox.innerHTML =
-        '<div class="empty">Loading completed jobs…</div>';
 
       try {
         const result = await client
@@ -2313,17 +2293,11 @@ window.mgSupabaseClient = client;
         const message = escapeHtml(error?.message || "Unable to load jobs.");
         activeJobsBox.innerHTML =
           `<div class="message error">${message}</div>`;
-        completedJobsBox.innerHTML =
-          `<div class="message error">${message}</div>`;
         nextSuggestedStopBox.innerHTML = "";
         showToast(error?.message || "Failed to load jobs", "error");
       } finally {
         if (activeJobsBox.innerHTML.includes("Loading assigned jobs")) {
           activeJobsBox.innerHTML = '<div class="empty">No active jobs are currently assigned.</div>';
-        }
-
-        if (completedJobsBox.innerHTML.includes("Loading completed jobs")) {
-          completedJobsBox.innerHTML = '<div class="empty">No completed jobs yet.</div>';
         }
       }
     }

@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MG Express Completed Today</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --dark-green: #064f3b;
+      --green: #087455;
+      --light-green: #e7f5ef;
+      --coral: #ff665c;
+      --background: #f3f8f6;
+      --white: #ffffff;
+      --ink: #17221e;
+      --muted: #68756f;
+      --line: #dfe8e4;
+      --danger: #a32d2d;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--background);
+      color: var(--ink);
+    }
+
+    button {
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--dark-green);
+      color: white;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .brand {
+      font-size: 23px;
+      font-weight: 900;
+      line-height: 1.08;
+    }
+
+    .brand span {
+      color: var(--coral);
+    }
+
+    .brand-subtitle {
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .signout {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 17px;
+      background: white;
+      color: var(--dark-green);
+      font-weight: 900;
+      min-width: 108px;
+    }
+
+    .container {
+      width: min(900px, 100%);
+      margin: auto;
+      padding: 22px 18px 55px;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 18px;
+      margin-bottom: 5px;
+    }
+
+    h1 {
+      margin: 0 0 22px;
+      font-size: 38px;
+      line-height: 1.05;
+    }
+
+    .window-note {
+      margin-bottom: 16px;
+      padding: 12px;
+      background: var(--light-green);
+      border: 1px solid #cfe1da;
+      border-radius: 12px;
+      color: var(--dark-green);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .section-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      margin: 0;
+      font-size: 26px;
+    }
+
+    .refresh {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px 14px;
+      background: white;
+      color: var(--dark-green);
+      font-weight: 800;
+    }
+
+    .job-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .job-card {
+      background: white;
+      border: 1px solid var(--line);
+      border-left: 6px solid var(--green);
+      border-radius: 14px;
+      padding: 12px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, .06);
+    }
+
+    .job-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+
+    .job-number {
+      color: var(--dark-green);
+      font-size: 22px;
+      font-weight: 900;
+      line-height: 1.05;
+    }
+
+    .job-pay {
+      color: var(--green);
+      font-size: 20px;
+      font-weight: 900;
+      white-space: nowrap;
+    }
+
+    .job-pay-label {
+      color: var(--muted);
+      font-size: 10px;
+      font-weight: 900;
+      text-transform: uppercase;
+      text-align: right;
+      margin-bottom: 2px;
+      letter-spacing: .03em;
+    }
+
+    .job-customer {
+      font-size: 14px;
+      font-weight: 800;
+      margin-bottom: 9px;
+    }
+
+    .route-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .route-row {
+      padding: 9px;
+      border-radius: 10px;
+      background: #f8fcfa;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .route-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+
+    .complete-time {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .empty {
+      background: white;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 24px;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.45;
+    }
+
+    .message {
+      margin-top: 14px;
+      padding: 13px;
+      border-radius: 11px;
+      line-height: 1.4;
+    }
+
+    .message.error {
+      background: #fff0f0;
+      color: var(--danger);
+    }
+
+    @media (max-width: 600px) {
+      h1 {
+        font-size: 33px;
+      }
+
+      h2 {
+        font-size: 23px;
+      }
+
+      .job-number {
+        font-size: 20px;
+      }
+
+      .job-pay {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div>
+      <div class="brand">MG <span>EXPRESS</span> DRIVER</div>
+      <div class="brand-subtitle">Driver Dashboard</div>
+    </div>
+
+    <button class="signout" id="signOutButton" type="button">Sign Out</button>
+  </header>
+
+  <main class="container">
+    <div class="eyebrow" id="welcomeText">Completed jobs in current driver day</div>
+    <h1>Completed Today</h1>
+
+    <div class="window-note" id="windowNote"></div>
+
+    <section>
+      <div class="section-heading">
+        <h2>Driver Jobs</h2>
+        <button class="refresh" id="refreshButton" type="button">Refresh</button>
+      </div>
+
+      <div id="completedJobs" class="job-list">
+        <div class="empty">Loading completed jobs...</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const client = supabase.createClient(
+      "https://dczlucwfjayymlwbzzdi.supabase.co",
+      "sb_publishable_kcv_a78ZyUxMo2neKUANdw_XN7eAMpI"
+    );
+
+    window.mgSupabaseClient = client;
+
+    const DRIVER_TIME_ZONE = "America/Denver";
+    const DRIVER_DAY_CUTOFF_HOUR = 19;
+
+    const completedJobsBox = document.getElementById("completedJobs");
+    const windowNote = document.getElementById("windowNote");
+    const welcomeText = document.getElementById("welcomeText");
+
+    let currentSession = null;
+    let driver = null;
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value ?? "";
+      return div.innerHTML;
+    }
+
+    function money(value) {
+      return Number(value || 0).toLocaleString("en-US", {
+        style: "currency",
+        currency: "USD"
+      });
+    }
+
+    function firstName(value) {
+      const fullName = String(value || "").trim();
+      if (!fullName) return "";
+      return fullName.split(/\s+/)[0] || "";
+    }
+
+    function greetingText(now) {
+      const hour = now.getHours();
+      if (hour >= 5 && hour < 12) return "Good Morning";
+      if (hour >= 12 && hour < 17) return "Good Afternoon";
+      return "Good Evening";
+    }
+
+    function getZoneParts(date, timeZone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+      }).formatToParts(date);
+
+      const map = {};
+
+      for (const part of parts) {
+        if (part.type !== "literal") {
+          map[part.type] = part.value;
+        }
+      }
+
+      return {
+        year: Number(map.year),
+        month: Number(map.month),
+        day: Number(map.day),
+        hour: Number(map.hour),
+        minute: Number(map.minute),
+        second: Number(map.second)
+      };
+    }
+
+    function parseOffsetMinutes(offsetLabel) {
+      const match = /^GMT([+-])(\d{1,2})(?::?(\d{2}))?$/.exec(offsetLabel || "");
+      if (!match) return 0;
+
+      const sign = match[1] === "+" ? 1 : -1;
+      const hours = Number(match[2] || 0);
+      const minutes = Number(match[3] || 0);
+
+      return sign * (hours * 60 + minutes);
+    }
+
+    function getTimeZoneOffsetMinutes(date, timeZone) {
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone,
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        timeZoneName: "shortOffset",
+        hour12: false
+      }).formatToParts(date);
+
+      const zonePart = parts.find(part => part.type === "timeZoneName")?.value || "";
+      return parseOffsetMinutes(zonePart);
+    }
+
+    function zonedLocalToUtcMs(year, month, day, hour, minute, second, timeZone) {
+      let utcMs = Date.UTC(year, month - 1, day, hour, minute, second);
+
+      for (let i = 0; i < 3; i += 1) {
+        const offsetMinutes = getTimeZoneOffsetMinutes(new Date(utcMs), timeZone);
+        utcMs = Date.UTC(year, month - 1, day, hour, minute, second) - (offsetMinutes * 60000);
+      }
+
+      return utcMs;
+    }
+
+    function shiftDateParts(year, month, day, deltaDays) {
+      const seed = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
+      seed.setUTCDate(seed.getUTCDate() + deltaDays);
+
+      return {
+        year: seed.getUTCFullYear(),
+        month: seed.getUTCMonth() + 1,
+        day: seed.getUTCDate()
+      };
+    }
+
+    function driverDayWindow(now) {
+      const denverNow = getZoneParts(now, DRIVER_TIME_ZONE);
+
+      const startDay = denverNow.hour < DRIVER_DAY_CUTOFF_HOUR
+        ? shiftDateParts(denverNow.year, denverNow.month, denverNow.day, -1)
+        : {
+            year: denverNow.year,
+            month: denverNow.month,
+            day: denverNow.day
+          };
+
+      const startMs = zonedLocalToUtcMs(
+        startDay.year,
+        startDay.month,
+        startDay.day,
+        DRIVER_DAY_CUTOFF_HOUR,
+        0,
+        0,
+        DRIVER_TIME_ZONE
+      );
+
+      return {
+        start: new Date(startMs),
+        end: now
+      };
+    }
+
+    function completionTimestamp(job) {
+      const raw = job.completed_at || job.delivered_at || "";
+      if (!raw) return null;
+
+      const parsed = Date.parse(raw);
+      if (!Number.isFinite(parsed)) return null;
+
+      return new Date(parsed);
+    }
+
+    function isDelivered(job) {
+      const workflow = String(job.driver_workflow_status || "").toLowerCase();
+      const status = String(job.status || "").toLowerCase();
+      return workflow === "delivered" || status === "delivered";
+    }
+
+    function formatDenverDateTime(value) {
+      if (!value) return "";
+
+      return new Date(value).toLocaleString("en-US", {
+        timeZone: DRIVER_TIME_ZONE,
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      });
+    }
+
+    function fieldValue(job, keys) {
+      for (const key of keys) {
+        const value = job?.[key];
+
+        if (value !== null && value !== undefined && String(value).trim() !== "") {
+          return String(value).trim();
+        }
+      }
+
+      return "";
+    }
+
+    function renderCompletedJobs(jobs) {
+      if (!jobs.length) {
+        completedJobsBox.innerHTML = '<div class="empty">No completed jobs yet in the current driver day window.</div>';
+        return;
+      }
+
+      completedJobsBox.innerHTML = jobs.map(job => {
+        const completedAt = completionTimestamp(job);
+
+        return `
+          <article class="job-card">
+            <div class="job-top">
+              <div class="job-number">${escapeHtml(job.job_number || "Job")}</div>
+              <div>
+                <div class="job-pay-label">Driver Pay</div>
+                <div class="job-pay">${money(job.driver_pay)}</div>
+              </div>
+            </div>
+
+            <div class="job-customer">${escapeHtml(job.customer_name || "Customer")}</div>
+
+            <div class="route-grid">
+              <div class="route-row">
+                <div class="route-label">Pickup</div>
+                <div>${escapeHtml(fieldValue(job, ["pickup_address", "pickup_city", "pickupCity"]) || "Not provided")}</div>
+              </div>
+
+              <div class="route-row">
+                <div class="route-label">Delivery</div>
+                <div>${escapeHtml(fieldValue(job, ["delivery_address", "delivery_city", "deliveryCity"]) || "Not provided")}</div>
+              </div>
+            </div>
+
+            <div class="complete-time">Completion Time: ${escapeHtml(formatDenverDateTime(completedAt))}</div>
+          </article>
+        `;
+      }).join("");
+    }
+
+    async function verifyDriver() {
+      const sessionResult = await client.auth.getSession();
+      currentSession = sessionResult.data.session;
+
+      if (!currentSession) {
+        location.replace("/index.html");
+        return false;
+      }
+
+      const profileResult = await client
+        .from("profiles")
+        .select("role,full_name")
+        .eq("id", currentSession.user.id)
+        .maybeSingle();
+
+      const role = String(profileResult.data?.role || "").toLowerCase();
+
+      if (role !== "driver") {
+        await client.auth.signOut();
+        location.replace("/index.html");
+        return false;
+      }
+
+      const driverResult = await client
+        .from("drivers")
+        .select("id,full_name,email,active")
+        .eq("id", currentSession.user.id)
+        .maybeSingle();
+
+      if (driverResult.error || !driverResult.data) {
+        completedJobsBox.innerHTML = `<div class="message error">${escapeHtml(driverResult.error?.message || "No driver record was found for this account.")}</div>`;
+        return false;
+      }
+
+      driver = driverResult.data;
+
+      const name = firstName(driver.full_name);
+      const greeting = greetingText(new Date());
+      welcomeText.textContent = name ? `${greeting}, ${name}` : greeting;
+
+      window.dispatchEvent(new CustomEvent("mg-driver-ready", {
+        detail: {
+          name: driver.full_name,
+          email: driver.email
+        }
+      }));
+
+      return true;
+    }
+
+    async function loadCompletedToday() {
+      completedJobsBox.innerHTML = '<div class="empty">Loading completed jobs...</div>';
+
+      try {
+        const now = new Date();
+        const windowRange = driverDayWindow(now);
+
+        windowNote.textContent = `Driver day window (Colorado): ${formatDenverDateTime(windowRange.start)} to ${formatDenverDateTime(windowRange.end)}.`;
+
+        const result = await client
+          .from("quotes")
+          .select("*")
+          .eq("assigned_driver_id", driver.id)
+          .order("created_at", { ascending: false });
+
+        if (result.error) {
+          throw result.error;
+        }
+
+        const filtered = (result.data || [])
+          .filter(job => isDelivered(job))
+          .filter(job => {
+            const completedAt = completionTimestamp(job);
+            if (!completedAt) return false;
+
+            return completedAt >= windowRange.start && completedAt <= windowRange.end;
+          })
+          .sort((a, b) => {
+            const aMs = completionTimestamp(a)?.getTime() || 0;
+            const bMs = completionTimestamp(b)?.getTime() || 0;
+            return bMs - aMs;
+          });
+
+        renderCompletedJobs(filtered);
+      } catch (error) {
+        completedJobsBox.innerHTML = `<div class="message error">${escapeHtml(error?.message || "Unable to load completed jobs.")}</div>`;
+      }
+    }
+
+    document.getElementById("refreshButton").addEventListener("click", loadCompletedToday);
+
+    document.getElementById("signOutButton").addEventListener("click", async function () {
+      this.disabled = true;
+      this.textContent = "Signing Out...";
+
+      try {
+        await client.auth.signOut();
+      } finally {
+        localStorage.clear();
+        sessionStorage.clear();
+        location.replace("/index.html");
+      }
+    });
+
+    (async function start() {
+      const validDriver = await verifyDriver();
+      if (!validDriver) return;
+      await loadCompletedToday();
+    })();
+  </script>
+
+  <script src="/menu.js"></script>
+</body>
+</html>
