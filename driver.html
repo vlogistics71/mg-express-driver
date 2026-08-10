@@ -791,6 +791,14 @@
       border: 1px solid var(--line);
     }
 
+    .workflow-panel .modal-note {
+      margin-top: 8px;
+    }
+
+    .pod-field {
+      margin-top: 10px;
+    }
+
     .workflow-panel .workflow-grid,
     .workflow-panel .button-grid {
       margin-top: 0;
@@ -1521,6 +1529,62 @@ window.mgSupabaseClient = client;
 
     window.openPhotoPicker = openPhotoPicker;
 
+    function photoStageForState(state) {
+      if (["picked_up", "driving_to_delivery", "arrived_delivery"].includes(state)) {
+        return "delivery";
+      }
+
+      if (state === "delivered") {
+        return "";
+      }
+
+      return "pickup";
+    }
+
+    function photoStageForJob(job) {
+      return photoStageForState(workflowState(job));
+    }
+
+    function workflowPhotoButtonLabel(job) {
+      const stage = photoStageForJob(job);
+
+      if (stage === "pickup") {
+        return job.pickup_photo_url ? "📷 Replace Pickup Photo" : "📷 Add Photo";
+      }
+
+      if (stage === "delivery") {
+        return job.delivery_photo_url ? "📷 Replace Delivery Photo" : "📷 Add Photo";
+      }
+
+      return "📷 Add Photo";
+    }
+
+    function workflowPhotoStatusText(job) {
+      const stage = photoStageForJob(job);
+
+      if (stage === "pickup" && job.pickup_photo_url) {
+        return "Pickup photo saved.";
+      }
+
+      if (stage === "delivery" && job.delivery_photo_url) {
+        return "Delivery photo saved.";
+      }
+
+      return "Photos are optional.";
+    }
+
+    function openStagePhotoPicker(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
+      if (!selectedJob?.id) return;
+
+      const stage = photoStageForJob(selectedJob);
+      if (!stage) return;
+
+      openPhotoPicker(jobId, stage, buttonElement);
+    }
+
+    window.openStagePhotoPicker = openStagePhotoPicker;
+
     function getSelectedJob(jobId) {
       const effectiveId = jobId || selectedJobId;
       if (!effectiveId) return null;
@@ -2082,7 +2146,7 @@ window.mgSupabaseClient = client;
             ${
               url
                 ? "Uploaded " + escapeHtml(formatDate(time))
-                : "Photo required"
+                : "No photo added"
             }
           </div>
 
@@ -2212,10 +2276,21 @@ window.mgSupabaseClient = client;
       return '<div class="modal-note">No workflow actions available.</div>';
     }
 
+    function workflowStatusForDatabase(displayStatus) {
+      const map = {
+        en_route_to_pickup: "en_route_pickup",
+        arrived_at_pickup: "arrived_pickup",
+        picked_up: "picked_up",
+        en_route_to_delivery: "en_route_delivery",
+        arrived_at_delivery: "arrived_delivery",
+        delivered: "delivered"
+      };
+
+      return map[displayStatus] || displayStatus;
+    }
+
     function renderJobDetailsModal(job) {
       const state = workflowState(job);
-      const showPickupControls = ["driving_to_pickup", "arrived_pickup"].includes(state);
-      const showDeliveryControls = ["driving_to_delivery", "arrived_delivery"].includes(state);
       const showDeliveryProof = state === "arrived_delivery";
       const customerPhone = fieldValue(job, ["customer_phone", "phone", "customer_phone_number"]);
       const packageType = summaryValue(job, ["package_type"]);
@@ -2255,62 +2330,33 @@ window.mgSupabaseClient = client;
         ${state !== "delivered" ? `
           <div class="workflow-panel">
             <div class="modal-section-title">Workflow</div>
+            ${showDeliveryProof ? `
+              <div class="pod-field">
+                <label>
+                  POD - Received By
+                  <input
+                    id="podRecipientModal-${job.id}"
+                    type="text"
+                    value="${escapeHtml(podRecipientValue(job))}"
+                    placeholder="John Smith"
+                  >
+                </label>
+              </div>
+            ` : ""}
             <div class="workflow-grid">
               ${workflowButtonsInModal(job)}
+              <button class="action photo-button" type="button" onclick="openStagePhotoPicker('${job.id}',this)">
+                ${workflowPhotoButtonLabel(job)}
+              </button>
             </div>
+            <div class="modal-note">${escapeHtml(workflowPhotoStatusText(job))}</div>
           </div>
         ` : '<div class="modal-note">Delivered job: workflow complete.</div>'}
 
         ${renderReturnDetails(job)}
 
-        <div class="detail-photo-grid">
-          <div class="photo-panel">
-            <div class="photo-heading">
-              <div class="photo-title">Pickup Photo</div>
-            </div>
-            ${photoInput(job.id, "pickup")}
-            ${showPickupControls ? `
-              <div class="button-grid">
-                <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','pickup',this)">
-                  ${job.pickup_photo_url ? "Replace Pickup Photo" : "Take Pickup Photo"}
-                </button>
-              </div>
-            ` : ""}
-            ${renderPhotoArea(job, "pickup")}
-          </div>
-
-          <div class="photo-panel">
-            <div class="photo-heading">
-              <div class="photo-title">Delivery Photo</div>
-            </div>
-            ${photoInput(job.id, "delivery")}
-            ${showDeliveryControls ? `
-              <div class="button-grid">
-                <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','delivery',this)">
-                  ${job.delivery_photo_url ? "Replace Delivery Photo" : "Take Delivery Photo"}
-                </button>
-              </div>
-            ` : ""}
-
-            ${showDeliveryProof ? `
-              <div class="delivery-options">
-                <label>
-                  Recipient Name
-                  <input
-                    id="podRecipientModal-${job.id}"
-                    type="text"
-                    value="${escapeHtml(podRecipientValue(job))}"
-                    placeholder="Enter recipient name if no delivery photo"
-                  >
-                </label>
-              </div>
-            ` : ""}
-
-            ${renderPhotoArea(job, "delivery")}
-          </div>
-        </div>
-
-        ${showDeliveryProof ? '<div class="modal-note">Complete delivery requires delivery photo or recipient name.</div>' : ""}
+        ${photoInput(job.id, "pickup")}
+        ${photoInput(job.id, "delivery")}
 
         <div id="message-${job.id}"></div>
       `;
@@ -2767,7 +2813,7 @@ window.mgSupabaseClient = client;
         const changes = { status };
 
         if (usesDriverWorkflowStatus(selectedJob)) {
-          changes.driver_workflow_status = status;
+          changes.driver_workflow_status = workflowStatusForDatabase(status);
         }
 
         return changes;
@@ -2859,12 +2905,11 @@ window.mgSupabaseClient = client;
 
       const recipientInput = document.getElementById("podRecipientModal-" + jobId);
       const recipientName = String(recipientInput?.value || "").trim();
-      const hasPhoto = Boolean(selectedJob?.delivery_photo_url);
 
-      if (!hasPhoto && !recipientName) {
+      if (!recipientName) {
         showJobMessage(
           jobId,
-          "Provide either a delivery photo or POD recipient name.",
+          "Enter the name of the person who received the delivery.",
           "error"
         );
 
@@ -2886,12 +2931,10 @@ window.mgSupabaseClient = client;
       };
 
       if (usesDriverWorkflowStatus(selectedJob)) {
-        changes.driver_workflow_status = "delivered";
+        changes.driver_workflow_status = workflowStatusForDatabase("delivered");
       }
 
-      if (recipientName) {
-        changes[podField] = recipientName;
-      }
+      changes[podField] = recipientName;
 
       const result = await client
         .from("quotes")
