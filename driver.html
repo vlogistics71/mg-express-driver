@@ -644,23 +644,24 @@
     }
 
     .modal-pay {
-      margin: 14px 0 4px;
+      margin: 0;
       color: var(--green);
-      font-size: 30px;
+      font-size: 24px;
       font-weight: 900;
     }
 
     .modal-grid {
       display: grid;
-      gap: 10px;
-      margin-top: 12px;
+      gap: 8px;
+      margin-top: 10px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .modal-item {
       background: #f8fcfa;
       border: 1px solid var(--line);
       border-radius: 12px;
-      padding: 11px;
+      padding: 10px;
     }
 
     .modal-label {
@@ -683,8 +684,8 @@
       color: var(--dark);
       font-size: 16px;
       font-weight: 900;
-      margin-top: 16px;
-      margin-bottom: 9px;
+      margin-top: 14px;
+      margin-bottom: 8px;
     }
 
     .modal-divider-arrow {
@@ -692,7 +693,134 @@
       text-align: center;
       font-size: 18px;
       font-weight: 900;
-      margin: 5px 0;
+      margin: 6px 0;
+    }
+
+    .detail-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .detail-summary-item {
+      background: #f8fcfa;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 10px;
+      min-height: 74px;
+    }
+
+    .detail-summary-value {
+      color: var(--ink);
+      font-size: 14px;
+      font-weight: 800;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+    }
+
+    .route-stack {
+      display: grid;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .stop-card {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 12px;
+      background: #fbfdfc;
+    }
+
+    .stop-heading {
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 7px;
+    }
+
+    .stop-line {
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.35;
+    }
+
+    .stop-line + .stop-line {
+      margin-top: 2px;
+    }
+
+    .stop-meta {
+      margin-top: 8px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .stop-note {
+      border-top: 1px solid var(--line);
+      padding-top: 7px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .stop-actions {
+      margin-top: 10px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stop-actions .action {
+      min-height: 42px;
+      padding: 10px 13px;
+    }
+
+    .compact-actions {
+      display: grid;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .workflow-panel {
+      margin-top: 10px;
+      padding: 12px;
+      border-radius: 14px;
+      background: #f6faf8;
+      border: 1px solid var(--line);
+    }
+
+    .workflow-panel .workflow-grid,
+    .workflow-panel .button-grid {
+      margin-top: 0;
+    }
+
+    .detail-photo-grid {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .photo-panel {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #fbfdfc;
+      padding: 12px;
+    }
+
+    .photo-heading {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .photo-title {
+      color: var(--dark);
+      font-size: 14px;
+      font-weight: 900;
     }
 
     .workflow-grid {
@@ -786,30 +914,30 @@
     }
 
     .photo-area {
-      margin-top: 15px;
+      margin-top: 8px;
       border: 1px dashed #b9c9c2;
-      border-radius: 14px;
-      padding: 14px;
+      border-radius: 12px;
+      padding: 10px;
       background: #fafdfb;
     }
 
     .photo-area img {
       width: 100%;
-      max-height: 260px;
+      max-height: 160px;
       object-fit: cover;
-      border-radius: 11px;
-      margin-top: 11px;
+      border-radius: 10px;
+      margin-top: 8px;
     }
 
     .photo-status {
       color: var(--muted);
-      font-size: 14px;
+      font-size: 12px;
       line-height: 1.4;
     }
 
     .delivery-options {
-      margin-top: 16px;
-      padding-top: 16px;
+      margin-top: 10px;
+      padding-top: 10px;
       border-top: 1px solid var(--line);
     }
 
@@ -907,7 +1035,9 @@
       }
 
       .workflow-grid,
-      .button-grid {
+      .button-grid,
+      .modal-grid,
+      .detail-summary-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1000,8 +1130,6 @@
           </button>
         </div>
       </div>
-
-      <div id="nextSuggestedStop"></div>
 
       <div id="activeJobs" class="job-list">
         <div class="empty">Loading assigned jobs…</div>
@@ -1277,6 +1405,94 @@ window.mgSupabaseClient = client;
       return "Standard";
     }
 
+    function hasDisplayValue(value) {
+      if (value === null || value === undefined) return false;
+
+      const text = String(value).trim();
+      if (!text) return false;
+
+      return text.toLowerCase() !== "not provided";
+    }
+
+    function humanizeDbValue(value) {
+      const text = String(value || "").trim();
+      if (!text) return "";
+
+      const directMap = {
+        business_to_business: "Business to Business",
+        on_demand: "On Demand",
+        same_day: "Same Day",
+        next_day: "Next Day",
+        two_hour: "2 Hour",
+        two_hr: "2 Hour",
+        '2_hr': "2 Hour",
+        four_hr: "4 Hour",
+        '4_hr': "4 Hour",
+        medical_specimen: "Medical Specimen"
+      };
+
+      const normalized = text.toLowerCase();
+      if (directMap[normalized]) {
+        return directMap[normalized];
+      }
+
+      return text
+        .replace(/[_-]+/g, " ")
+        .replace(/\b(\d+)\s*hr\b/gi, "$1 Hour")
+        .replace(/\b\w+/g, word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+    }
+
+    function cityStateZip(job, prefix) {
+      const city = fieldValue(job, [prefix + "_city", prefix + "City"]);
+      const state = fieldValue(job, [prefix + "_state", prefix + "State"]);
+      const zip = fieldValue(job, [prefix + "_zip", prefix + "_postal_code", prefix + "_postcode"]);
+
+      const cityState = [city, state].filter(hasDisplayValue).join(", ");
+      return [cityState, zip].filter(hasDisplayValue).join(" ");
+    }
+
+    function stopAddressLines(job, prefix) {
+      const address = fieldValue(job, [prefix + "_address"]);
+      const suite = fieldValue(job, [prefix + "_suite", prefix + "_floor", prefix + "_unit", prefix + "_suite_floor"]);
+      const place = cityStateZip(job, prefix);
+
+      return [address, suite, place].filter(hasDisplayValue);
+    }
+
+    function summaryValue(job, keys, fallback = "") {
+      const value = fieldValue(job, keys);
+      return hasDisplayValue(value) ? humanizeDbValue(value) : fallback;
+    }
+
+    function renderSummaryItem(label, value, emphasize = false) {
+      if (!hasDisplayValue(value)) return "";
+
+      return `
+        <div class="detail-summary-item">
+          <div class="modal-label">${escapeHtml(label)}</div>
+          <div class="detail-summary-value${emphasize ? " modal-pay" : ""}">${escapeHtml(value)}</div>
+        </div>
+      `;
+    }
+
+    function renderStopCard(job, prefix, title) {
+      const lines = stopAddressLines(job, prefix);
+      const notes = fieldValue(job, [prefix + "_notes", prefix + "_instructions"]);
+
+      return `
+        <div class="stop-card">
+          <div class="stop-heading">${escapeHtml(title)}</div>
+          <div class="stop-meta">
+            ${lines.map(line => `<div class="stop-line">${escapeHtml(line)}</div>`).join("")}
+          </div>
+          ${hasDisplayValue(notes) ? `<div class="stop-note">${escapeHtml(notes)}</div>` : ""}
+          <div class="stop-actions">
+            <button class="action directions" type="button" onclick="navigateForStop('${job.id}','${prefix.toUpperCase()}')">Navigate</button>
+          </div>
+        </div>
+      `;
+    }
+
     function photoInput(jobId, type) {
       return `
         <input
@@ -1511,6 +1727,10 @@ window.mgSupabaseClient = client;
     window.toggleNextStopDetails = toggleNextStopDetails;
 
     function renderNextSuggestedStopCard() {
+      if (!nextSuggestedStopBox) {
+        return;
+      }
+
       try {
         const stop = selectNextSuggestedStop();
 
@@ -1778,6 +1998,32 @@ window.mgSupabaseClient = client;
       const returnSuite = fieldValue(job, ["return_suite_floor"]);
       const returnZip = fieldValue(job, ["return_zip", "return_postal_code", "return_postcode"]);
       const returnTiming = fieldValue(job, ["return_timing"]);
+      const items = [
+        {
+          label: "Return destination type",
+          value: humanizeDbValue(returnDestinationLabel(job))
+        },
+        {
+          label: "Return address",
+          value: returnAddress
+        },
+        {
+          label: "Return suite/floor",
+          value: returnSuite
+        },
+        {
+          label: "Return ZIP",
+          value: returnZip
+        },
+        {
+          label: "Return timing",
+          value: humanizeDbValue(returnTiming)
+        }
+      ].filter(item => hasDisplayValue(item.value));
+
+      if (!items.length) {
+        return "";
+      }
 
       return `
         <div class="modal-section-title">Return Service</div>
@@ -1788,30 +2034,12 @@ window.mgSupabaseClient = client;
           </summary>
 
           <div class="return-content">
-            <div class="return-item">
-              <strong>Return destination type:</strong>
-              ${escapeHtml(safeText(returnDestinationLabel(job)))}
-            </div>
-
-            <div class="return-item">
-              <strong>Return address:</strong>
-              ${escapeHtml(safeText(returnAddress))}
-            </div>
-
-            <div class="return-item">
-              <strong>Return suite/floor:</strong>
-              ${escapeHtml(safeText(returnSuite))}
-            </div>
-
-            <div class="return-item">
-              <strong>Return ZIP:</strong>
-              ${escapeHtml(safeText(returnZip))}
-            </div>
-
-            <div class="return-item">
-              <strong>Return timing:</strong>
-              ${escapeHtml(safeText(returnTiming))}
-            </div>
+            ${items.map(item => `
+              <div class="return-item">
+                <strong>${escapeHtml(item.label)}:</strong>
+                ${escapeHtml(item.value)}
+              </div>
+            `).join("")}
           </div>
         </details>
       `;
@@ -1985,21 +2213,20 @@ window.mgSupabaseClient = client;
     }
 
     function renderJobDetailsModal(job) {
-      const status = normalizeJobStatus(job);
       const state = workflowState(job);
       const showPickupControls = ["driving_to_pickup", "arrived_pickup"].includes(state);
       const showDeliveryControls = ["driving_to_delivery", "arrived_delivery"].includes(state);
       const showDeliveryProof = state === "arrived_delivery";
-      const pickupSuite = fieldValue(job, ["pickup_suite", "pickup_floor", "pickup_unit", "pickup_suite_floor"]);
-      const deliverySuite = fieldValue(job, ["delivery_suite", "delivery_floor", "delivery_unit", "delivery_suite_floor"]);
-      const pickupZip = fieldValue(job, ["pickup_zip", "pickup_postal_code", "pickup_postcode"]);
-      const deliveryZip = fieldValue(job, ["delivery_zip", "delivery_postal_code", "delivery_postcode"]);
-      const pickupNotes = fieldValue(job, ["pickup_notes", "pickup_instructions"]);
-      const deliveryNotes = fieldValue(job, ["delivery_notes", "special_instructions"]);
-      const pickupPhone = fieldValue(job, ["pickup_phone", "pickup_contact_phone"]);
       const customerPhone = fieldValue(job, ["customer_phone", "phone", "customer_phone_number"]);
-      const deliveryType = fieldValue(job, ["delivery_type"]);
-      const serviceLevel = fieldValue(job, ["service_level"]);
+      const packageType = summaryValue(job, ["package_type"]);
+      const serviceLevel = summaryValue(job, ["service_level", "delivery_type"]);
+      const speed = humanizeDbValue(deliverySpeedOrTime(job));
+      const summaryGrid = [
+        renderSummaryItem("Package", packageType),
+        renderSummaryItem("Service", serviceLevel),
+        renderSummaryItem("Speed", speed),
+        renderSummaryItem("Driver Pay", money(job.driver_pay), true)
+      ].filter(Boolean).join("");
 
       jobModalContent.innerHTML = `
         <h3 id="jobModalTitle" class="modal-title">${escapeHtml(job.job_number)}</h3>
@@ -2012,97 +2239,76 @@ window.mgSupabaseClient = client;
             : ""}
         </div>
 
-        <div class="modal-grid">
-          <div class="modal-item"><div class="modal-label">Customer</div><div class="modal-value">${escapeHtml(safeText(job.customer_name, "Customer"))}</div></div>
-          <div class="modal-item"><div class="modal-label">Package Type</div><div class="modal-value">${escapeHtml(safeText(job.package_type))}</div></div>
-          <div class="modal-item"><div class="modal-label">Delivery Type</div><div class="modal-value">${escapeHtml(safeText(deliveryType))}</div></div>
-          <div class="modal-item"><div class="modal-label">Service Level</div><div class="modal-value">${escapeHtml(safeText(serviceLevel))}</div></div>
-          <div class="modal-item"><div class="modal-label">Delivery Speed</div><div class="modal-value">${escapeHtml(safeText(job.delivery_speed, deliverySpeedOrTime(job)))}</div></div>
+        <div class="detail-summary-grid">${summaryGrid}</div>
+
+        <div class="modal-section-title">Route</div>
+        <div class="route-stack">
+          ${renderStopCard(job, "pickup", "Pickup")}
+          <div class="modal-divider-arrow">↓</div>
+          ${renderStopCard(job, "delivery", "Delivery")}
         </div>
 
-        <div class="modal-section-title">Pickup</div>
-        <div class="modal-grid">
-          <div class="modal-item"><div class="modal-label">Address</div><div class="modal-value">${escapeHtml(safeText(job.pickup_address))}</div></div>
-          <div class="modal-item"><div class="modal-label">Suite/Floor</div><div class="modal-value">${escapeHtml(safeText(pickupSuite))}</div></div>
-          <div class="modal-item"><div class="modal-label">ZIP</div><div class="modal-value">${escapeHtml(safeText(pickupZip))}</div></div>
-          <div class="modal-item"><div class="modal-label">Pickup Notes</div><div class="modal-value">${escapeHtml(safeText(pickupNotes))}</div></div>
-        </div>
-
-        <div class="modal-divider-arrow">↓</div>
-
-        <div class="modal-section-title">Delivery</div>
-        <div class="modal-grid">
-          <div class="modal-item"><div class="modal-label">Address</div><div class="modal-value">${escapeHtml(safeText(job.delivery_address))}</div></div>
-          <div class="modal-item"><div class="modal-label">Suite/Floor</div><div class="modal-value">${escapeHtml(safeText(deliverySuite))}</div></div>
-          <div class="modal-item"><div class="modal-label">ZIP</div><div class="modal-value">${escapeHtml(safeText(deliveryZip))}</div></div>
-          <div class="modal-item"><div class="modal-label">Recipient</div><div class="modal-value">${escapeHtml(safeText(podRecipientValue(job)))}</div></div>
-          <div class="modal-item"><div class="modal-label">Delivery Notes</div><div class="modal-value">${escapeHtml(safeText(deliveryNotes))}</div></div>
-        </div>
-
-        ${renderReturnDetails(job)}
-
-        <div class="modal-divider-arrow">↓</div>
-
-        <div class="modal-label">Driver Pay</div>
-        <div class="modal-pay">${money(job.driver_pay)}</div>
-
-        <div class="modal-divider-arrow">↓</div>
-
-        <div class="modal-label">Current Status</div>
-        <div class="modal-status-row">
-          <div class="status ${statusBadgeClass(job)}">${escapeHtml(cardWorkflowLabel(job))}</div>
-        </div>
-
-        <div class="modal-section-title">Actions</div>
-        <div class="button-grid">
-          <button class="action directions" type="button" onclick="navigateForJob('${job.id}')">📍 Navigate</button>
-          ${pickupPhone ? `<button class="action directions" type="button" onclick="window.location.href='tel:${escapeHtml(pickupPhone)}'">Call Pickup</button>` : ""}
+        <div class="compact-actions">
           ${customerPhone ? `<button class="action directions" type="button" onclick="window.location.href='tel:${escapeHtml(customerPhone)}'">Call Customer</button>` : ""}
         </div>
 
         ${state !== "delivered" ? `
-          <div class="modal-section-title">Workflow</div>
-          <div class="workflow-grid">
-            ${workflowButtonsInModal(job)}
+          <div class="workflow-panel">
+            <div class="modal-section-title">Workflow</div>
+            <div class="workflow-grid">
+              ${workflowButtonsInModal(job)}
+            </div>
           </div>
         ` : '<div class="modal-note">Delivered job: workflow complete.</div>'}
 
-        <div class="modal-section-title">Pickup Photo</div>
-        ${photoInput(job.id, "pickup")}
-        ${showPickupControls ? `
-          <div class="button-grid">
-            <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','pickup',this)">
-              ${job.pickup_photo_url ? "Replace Pickup Photo" : "Take Pickup Photo"}
-            </button>
-          </div>
-        ` : ""}
-        ${renderPhotoArea(job, "pickup")}
+        ${renderReturnDetails(job)}
 
-        <div class="modal-section-title">Delivery Photo</div>
-        ${photoInput(job.id, "delivery")}
-        ${showDeliveryControls ? `
-          <div class="button-grid">
-            <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','delivery',this)">
-              ${job.delivery_photo_url ? "Replace Delivery Photo" : "Take Delivery Photo"}
-            </button>
+        <div class="detail-photo-grid">
+          <div class="photo-panel">
+            <div class="photo-heading">
+              <div class="photo-title">Pickup Photo</div>
+            </div>
+            ${photoInput(job.id, "pickup")}
+            ${showPickupControls ? `
+              <div class="button-grid">
+                <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','pickup',this)">
+                  ${job.pickup_photo_url ? "Replace Pickup Photo" : "Take Pickup Photo"}
+                </button>
+              </div>
+            ` : ""}
+            ${renderPhotoArea(job, "pickup")}
           </div>
-        ` : ""}
 
-        ${showDeliveryProof ? `
-          <div class="delivery-options">
-            <label>
-              Recipient Name
-              <input
-                id="podRecipientModal-${job.id}"
-                type="text"
-                value="${escapeHtml(podRecipientValue(job))}"
-                placeholder="Enter recipient name if no delivery photo"
-              >
-            </label>
+          <div class="photo-panel">
+            <div class="photo-heading">
+              <div class="photo-title">Delivery Photo</div>
+            </div>
+            ${photoInput(job.id, "delivery")}
+            ${showDeliveryControls ? `
+              <div class="button-grid">
+                <button class="action photo-button" type="button" onclick="openPhotoPicker('${job.id}','delivery',this)">
+                  ${job.delivery_photo_url ? "Replace Delivery Photo" : "Take Delivery Photo"}
+                </button>
+              </div>
+            ` : ""}
+
+            ${showDeliveryProof ? `
+              <div class="delivery-options">
+                <label>
+                  Recipient Name
+                  <input
+                    id="podRecipientModal-${job.id}"
+                    type="text"
+                    value="${escapeHtml(podRecipientValue(job))}"
+                    placeholder="Enter recipient name if no delivery photo"
+                  >
+                </label>
+              </div>
+            ` : ""}
+
+            ${renderPhotoArea(job, "delivery")}
           </div>
-        ` : ""}
-
-        ${renderPhotoArea(job, "delivery")}
+        </div>
 
         ${showDeliveryProof ? '<div class="modal-note">Complete delivery requires delivery photo or recipient name.</div>' : ""}
 
@@ -2293,7 +2499,9 @@ window.mgSupabaseClient = client;
         const message = escapeHtml(error?.message || "Unable to load jobs.");
         activeJobsBox.innerHTML =
           `<div class="message error">${message}</div>`;
-        nextSuggestedStopBox.innerHTML = "";
+        if (nextSuggestedStopBox) {
+          nextSuggestedStopBox.innerHTML = "";
+        }
         showToast(error?.message || "Failed to load jobs", "error");
       } finally {
         if (activeJobsBox.innerHTML.includes("Loading assigned jobs")) {
