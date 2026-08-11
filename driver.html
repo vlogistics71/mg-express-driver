@@ -1280,7 +1280,6 @@ window.mgSupabaseClient = client;
     let modalBusy = false;
     let pendingPhotoButton = null;
     let nextStopExpanded = false;
-    const localWorkflowStage = Object.create(null);
     let countdownTimerId = null;
 
     function escapeHtml(value) {
@@ -2194,41 +2193,8 @@ window.mgSupabaseClient = client;
       return !value || value === "pending";
     }
 
-    function setLocalWorkflowStage(jobId, stage) {
-      if (!jobId) return;
-
-      if (!stage) {
-        delete localWorkflowStage[jobId];
-        return;
-      }
-
-      localWorkflowStage[jobId] = stage;
-    }
-
-    function localWorkflowOverride(job) {
-      const jobId = job?.id;
-      if (!jobId) return "";
-
-      const override = localWorkflowStage[jobId];
-      if (!override) return "";
-
-      const status = normalizeJobStatus(job);
-
-      if (override === "arrived_pickup" && status === "en_route_to_pickup") {
-        return "arrived_pickup";
-      }
-
-      if (override === "arrived_delivery" && status === "en_route_to_delivery") {
-        return "arrived_delivery";
-      }
-
-      delete localWorkflowStage[jobId];
-      return "";
-    }
-
     function workflowState(job) {
       const status = normalizeJobStatus(job);
-      const override = localWorkflowOverride(job);
 
       if (status === "assigned" && acceptancePending(job)) {
         return "pending";
@@ -2238,15 +2204,9 @@ window.mgSupabaseClient = client;
         return "accepted";
       }
 
-      if (override) {
-        return override;
-      }
-
       if (status === "en_route_to_pickup") return "driving_to_pickup";
-      if (status === "arrived_at_pickup") return "arrived_pickup";
       if (status === "picked_up") return "picked_up";
       if (status === "en_route_to_delivery") return "driving_to_delivery";
-      if (status === "arrived_at_delivery") return "arrived_delivery";
       if (status === "delivered") return "delivered";
 
       return "other";
@@ -2552,13 +2512,7 @@ window.mgSupabaseClient = client;
 
       if (state === "driving_to_pickup") {
         return `
-          <button class="action primary" type="button" onclick="markArrivedAtPickup('${job.id}',this)">I've Arrived</button>
-        `;
-      }
-
-      if (state === "arrived_pickup") {
-        return `
-          <button class="action primary" type="button" onclick="markPickedUp('${job.id}',this)">Confirm Pickup</button>
+          <button class="action primary" type="button" onclick="markPickedUp('${job.id}',this)">Picked Up</button>
         `;
       }
 
@@ -2569,12 +2523,6 @@ window.mgSupabaseClient = client;
       }
 
       if (state === "driving_to_delivery") {
-        return `
-          <button class="action primary" type="button" onclick="markArrivedAtDelivery('${job.id}',this)">I've Arrived</button>
-        `;
-      }
-
-      if (state === "arrived_delivery") {
         return `
           <button class="action primary" type="button" onclick="markDelivered('${job.id}',this)">Complete Delivery</button>
         `;
@@ -2590,10 +2538,8 @@ window.mgSupabaseClient = client;
     function workflowStatusForDatabase(displayStatus) {
       const map = {
         en_route_to_pickup: "en_route_pickup",
-        arrived_at_pickup: "arrived_pickup",
         picked_up: "picked_up",
         en_route_to_delivery: "en_route_delivery",
-        arrived_at_delivery: "arrived_delivery",
         delivered: "delivered"
       };
 
@@ -2602,7 +2548,7 @@ window.mgSupabaseClient = client;
 
     function renderJobDetailsModal(job) {
       const state = workflowState(job);
-      const showDeliveryProof = state === "arrived_delivery";
+      const showDeliveryProof = state === "driving_to_delivery";
       const countdown = countdownInfo(job);
       const customerPhone = fieldValue(job, ["customer_phone", "phone", "customer_phone_number"]);
       const packageType = summaryValue(job, ["package_type"]);
@@ -3155,7 +3101,7 @@ window.mgSupabaseClient = client;
 
     async function markEnRouteToPickup(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
-      const success = await updateJob(
+      await updateJob(
         jobId,
         workflowUpdate("en_route_to_pickup")(selectedJob),
         "Updating job status…",
@@ -3164,46 +3110,13 @@ window.mgSupabaseClient = client;
           successToast: "Status updated"
         }
       );
-
-      if (success) {
-        setLocalWorkflowStage(jobId, "");
-      }
     }
 
     window.markEnRouteToPickup = markEnRouteToPickup;
 
-    function markArrivedAtPickup(jobId, buttonElement) {
-      const selectedJob = getSelectedJob(jobId);
-
-      if (!selectedJob?.id) {
-        showJobMessage(jobId, "Selected job could not be found.", "error");
-        return;
-      }
-
-      if (normalizeJobStatus(selectedJob) !== "en_route_to_pickup") {
-        return;
-      }
-
-      setLocalWorkflowStage(selectedJob.id, "arrived_pickup");
-
-      if (buttonElement) {
-        buttonElement.disabled = true;
-      }
-
-      renderJobDetailsModal(selectedJob);
-
-      if (buttonElement) {
-        buttonElement.disabled = false;
-      }
-
-      showToast("Arrival noted. Confirm pickup when ready.", "info");
-    }
-
-    window.markArrivedAtPickup = markArrivedAtPickup;
-
     async function markPickedUp(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
-      const success = await updateJob(
+      await updateJob(
         jobId,
         workflowUpdate("picked_up")(selectedJob),
         "Updating job status…",
@@ -3212,17 +3125,13 @@ window.mgSupabaseClient = client;
           successToast: "Status updated"
         }
       );
-
-      if (success) {
-        setLocalWorkflowStage(jobId, "");
-      }
     }
 
     window.markPickedUp = markPickedUp;
 
     async function markEnRouteToDelivery(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
-      const success = await updateJob(
+      await updateJob(
         jobId,
         workflowUpdate("en_route_to_delivery")(selectedJob),
         "Updating job status…",
@@ -3231,42 +3140,9 @@ window.mgSupabaseClient = client;
           successToast: "Status updated"
         }
       );
-
-      if (success) {
-        setLocalWorkflowStage(jobId, "");
-      }
     }
 
     window.markEnRouteToDelivery = markEnRouteToDelivery;
-
-    function markArrivedAtDelivery(jobId, buttonElement) {
-      const selectedJob = getSelectedJob(jobId);
-
-      if (!selectedJob?.id) {
-        showJobMessage(jobId, "Selected job could not be found.", "error");
-        return;
-      }
-
-      if (normalizeJobStatus(selectedJob) !== "en_route_to_delivery") {
-        return;
-      }
-
-      setLocalWorkflowStage(selectedJob.id, "arrived_delivery");
-
-      if (buttonElement) {
-        buttonElement.disabled = true;
-      }
-
-      renderJobDetailsModal(selectedJob);
-
-      if (buttonElement) {
-        buttonElement.disabled = false;
-      }
-
-      showToast("Arrival noted. Complete delivery when ready.", "info");
-    }
-
-    window.markArrivedAtDelivery = markArrivedAtDelivery;
 
     async function markDelivered(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
@@ -3327,7 +3203,6 @@ window.mgSupabaseClient = client;
       }
 
       await loadJobs();
-      setLocalWorkflowStage(jobId, "");
       closeJobDetails(true);
       showToast("Delivery completed", "success");
       setModalBusy(false);
