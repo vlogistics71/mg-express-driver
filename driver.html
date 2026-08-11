@@ -573,6 +573,60 @@
       margin-top: 2px;
     }
 
+    .deadline-block {
+      display: grid;
+      gap: 4px;
+      justify-items: end;
+      text-align: right;
+    }
+
+    .deadline-due {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .02em;
+    }
+
+    .deadline-badge {
+      border-radius: 999px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 900;
+      border: 1px solid #cfe1da;
+      background: #edf7f3;
+      color: var(--green);
+      white-space: nowrap;
+    }
+
+    .countdown-inline {
+      display: inline-block;
+    }
+
+    .deadline-normal {
+      border-color: #cfe1da;
+      background: #edf7f3;
+      color: var(--green);
+    }
+
+    .deadline-caution {
+      border-color: #f1df9a;
+      background: #fff8df;
+      color: #8a6b00;
+    }
+
+    .deadline-urgent {
+      border-color: #ffc7a0;
+      background: #fff1e6;
+      color: #b54f00;
+    }
+
+    .deadline-overdue {
+      border-color: #f2b4b4;
+      background: #fff0f0;
+      color: #9d2e2e;
+    }
+
     .job-modal {
       position: fixed;
       inset: 0;
@@ -797,6 +851,24 @@
 
     .pod-field {
       margin-top: 10px;
+    }
+
+    .photo-actions {
+      margin-top: 8px;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .photo-added {
+      background: #e8f8ee;
+      color: #0c7f5c;
+      border: 1px solid #bfe6d2;
+      border-radius: 12px;
+      min-height: 42px;
+      padding: 10px 12px;
+      font-weight: 900;
+      text-align: center;
     }
 
     .workflow-panel .workflow-grid,
@@ -1045,7 +1117,8 @@
       .workflow-grid,
       .button-grid,
       .modal-grid,
-      .detail-summary-grid {
+      .detail-summary-grid,
+      .photo-actions {
         grid-template-columns: 1fr;
       }
 
@@ -1204,6 +1277,7 @@ window.mgSupabaseClient = client;
     let pendingPhotoButton = null;
     let nextStopExpanded = false;
     const localWorkflowStage = Object.create(null);
+    let countdownTimerId = null;
 
     function escapeHtml(value) {
       const div = document.createElement("div");
@@ -1414,6 +1488,91 @@ window.mgSupabaseClient = client;
       return "Standard";
     }
 
+    function deliverySpeedHours(job) {
+      const value = String(job?.delivery_speed || "").trim().toLowerCase();
+      const map = {
+        "2_hr": 2,
+        "3_hr": 3,
+        "4_hr": 4,
+        "5_hr": 5,
+        "6_hr": 6
+      };
+
+      return map[value] || 0;
+    }
+
+    function parseTimestamp(value) {
+      if (!value) return 0;
+      const parsed = Date.parse(value);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function countdownStartTimestamp(job) {
+      const preferred = [
+        "assigned_at",
+        "dispatched_at",
+        "sent_to_driver_at",
+        "driver_assigned_at",
+        "approved_at"
+      ];
+
+      for (const key of preferred) {
+        const parsed = parseTimestamp(job?.[key]);
+        if (parsed > 0) return parsed;
+      }
+
+      return parseTimestamp(job?.created_at);
+    }
+
+    function countdownInfo(job, nowMs = Date.now()) {
+      const status = normalizeJobStatus(job);
+
+      if (["delivered", "cancelled"].includes(status)) {
+        return null;
+      }
+
+      const hours = deliverySpeedHours(job);
+      if (!hours) {
+        return null;
+      }
+
+      const startMs = countdownStartTimestamp(job);
+      if (!startMs) {
+        return null;
+      }
+
+      const deadlineMs = startMs + (hours * 60 * 60 * 1000);
+      const deltaMs = deadlineMs - nowMs;
+      const absoluteMinutes = Math.max(0, Math.floor(Math.abs(deltaMs) / 60000));
+      const remainingMinutes = Math.max(0, Math.floor(deltaMs / 60000));
+
+      let severity = "normal";
+
+      if (deltaMs < 0) {
+        severity = "overdue";
+      } else if (remainingMinutes <= 30) {
+        severity = "urgent";
+      } else if (remainingMinutes <= 60) {
+        severity = "caution";
+      }
+
+      const hoursLeft = Math.floor(remainingMinutes / 60);
+      const minutesLeft = remainingMinutes % 60;
+      const leftLabel =
+        deltaMs < 0
+          ? `OVERDUE • ${absoluteMinutes} min`
+          : `${hoursLeft ? `${hoursLeft} hr ` : ""}${minutesLeft} min left`.trim();
+
+      return {
+        dueLabel: new Date(deadlineMs).toLocaleTimeString([], {
+          hour: "numeric",
+          minute: "2-digit"
+        }),
+        leftLabel,
+        severity
+      };
+    }
+
     function hasDisplayValue(value) {
       if (value === null || value === undefined) return false;
 
@@ -1550,11 +1709,11 @@ window.mgSupabaseClient = client;
       const stage = photoStageForJob(job);
 
       if (stage === "pickup") {
-        return job.pickup_photo_url ? "📷 Replace Pickup Photo" : "📷 Add Photo";
+        return job.pickup_photo_url ? "✓ Photo Added" : "📷 Add Photo";
       }
 
       if (stage === "delivery") {
-        return job.delivery_photo_url ? "📷 Replace Delivery Photo" : "📷 Add Photo";
+        return job.delivery_photo_url ? "✓ Photo Added" : "📷 Add Photo";
       }
 
       return "📷 Add Photo";
@@ -1564,7 +1723,7 @@ window.mgSupabaseClient = client;
       const stage = photoStageForJob(job);
 
       if (stage === "pickup" && job.pickup_photo_url) {
-        return "Pickup photo saved.";
+        return "Pickup photo saved."
       }
 
       if (stage === "delivery" && job.delivery_photo_url) {
@@ -1572,6 +1731,86 @@ window.mgSupabaseClient = client;
       }
 
       return "Photos are optional.";
+    }
+
+    function workflowStagePhotoUrl(job) {
+      const stage = photoStageForJob(job);
+
+      if (stage === "pickup") {
+        return String(job?.pickup_photo_url || "").trim();
+      }
+
+      if (stage === "delivery") {
+        return String(job?.delivery_photo_url || "").trim();
+      }
+
+      return "";
+    }
+
+    function photoStageActionButtons(job) {
+      const stage = photoStageForJob(job);
+      if (!stage) return "";
+
+      const url = workflowStagePhotoUrl(job);
+
+      if (!url) {
+        return `
+          <button class="action photo-button" type="button" onclick="openStagePhotoPicker('${job.id}',this)">
+            📷 Add Photo
+          </button>
+        `;
+      }
+
+      return `
+        <div class="photo-added">✓ Photo Added</div>
+        <div class="photo-actions">
+          <button class="action directions" type="button" onclick="viewStagePhoto('${job.id}')">View Photo</button>
+          <button class="action photo-button" type="button" onclick="openStagePhotoPicker('${job.id}',this)">Retake Photo</button>
+        </div>
+      `;
+    }
+
+    function viewStagePhoto(jobId) {
+      const selectedJob = getSelectedJob(jobId);
+      if (!selectedJob?.id) return;
+
+      const url = workflowStagePhotoUrl(selectedJob);
+      if (!url) return;
+
+      window.open(url, "_blank");
+    }
+
+    window.viewStagePhoto = viewStagePhoto;
+
+    function updateOpenJobCountdown() {
+      if (jobModal.hidden || !selectedJobId) {
+        return;
+      }
+
+      const job = getSelectedJob(selectedJobId);
+      if (!job?.id) {
+        return;
+      }
+
+      const wrap = document.getElementById("jobCountdownWrap-" + job.id);
+      const due = document.getElementById("jobDue-" + job.id);
+      const left = document.getElementById("jobLeft-" + job.id);
+
+      if (!wrap || !due || !left) {
+        return;
+      }
+
+      const countdown = countdownInfo(job);
+
+      if (!countdown) {
+        wrap.hidden = true;
+        return;
+      }
+
+      wrap.hidden = false;
+      due.textContent = countdown.dueLabel;
+      left.textContent = countdown.leftLabel;
+      left.className = "detail-summary-value countdown-inline deadline-badge deadline-" + countdown.severity;
     }
 
     function openStagePhotoPicker(jobId, buttonElement) {
@@ -2200,6 +2439,8 @@ window.mgSupabaseClient = client;
     }
 
     function compactJobCard(job) {
+      const countdown = countdownInfo(job);
+
       return `
         <article
           class="compact-job ${categoryCardClass(job)}"
@@ -2251,6 +2492,13 @@ window.mgSupabaseClient = client;
               <div class="compact-speed">${escapeHtml(deliverySpeedOrTime(job))}</div>
               <div class="compact-pay">${money(job.driver_pay)}</div>
             </div>
+
+            ${countdown ? `
+              <div class="deadline-block">
+                <div class="deadline-due">Due ${escapeHtml(countdown.dueLabel)}</div>
+                <div class="deadline-badge deadline-${escapeHtml(countdown.severity)}">${escapeHtml(countdown.leftLabel)}</div>
+              </div>
+            ` : ""}
           </div>
         </article>
       `;
@@ -2330,6 +2578,7 @@ window.mgSupabaseClient = client;
     function renderJobDetailsModal(job) {
       const state = workflowState(job);
       const showDeliveryProof = state === "arrived_delivery";
+      const countdown = countdownInfo(job);
       const customerPhone = fieldValue(job, ["customer_phone", "phone", "customer_phone_number"]);
       const packageType = summaryValue(job, ["package_type"]);
       const serviceLevel = summaryValue(job, ["service_level", "delivery_type"]);
@@ -2353,6 +2602,18 @@ window.mgSupabaseClient = client;
         </div>
 
         <div class="detail-summary-grid">${summaryGrid}</div>
+
+        <div class="detail-summary-grid" id="jobCountdownWrap-${job.id}" ${countdown ? "" : "hidden"}>
+          <div class="detail-summary-item">
+            <div class="modal-label">Due</div>
+            <div class="detail-summary-value" id="jobDue-${job.id}">${escapeHtml(countdown?.dueLabel || "")}</div>
+          </div>
+
+          <div class="detail-summary-item">
+            <div class="modal-label">Time Left</div>
+            <div class="detail-summary-value countdown-inline deadline-badge deadline-${escapeHtml(countdown?.severity || "normal")}" id="jobLeft-${job.id}">${escapeHtml(countdown?.leftLabel || "")}</div>
+          </div>
+        </div>
 
         <div class="modal-section-title">Route</div>
         <div class="route-stack">
@@ -2383,9 +2644,7 @@ window.mgSupabaseClient = client;
             ` : ""}
             <div class="workflow-grid">
               ${workflowButtonsInModal(job)}
-              <button class="action photo-button" type="button" onclick="openStagePhotoPicker('${job.id}',this)">
-                ${workflowPhotoButtonLabel(job)}
-              </button>
+              ${photoStageActionButtons(job)}
             </div>
             <div class="modal-note">${escapeHtml(workflowPhotoStatusText(job))}</div>
           </div>
@@ -2714,6 +2973,17 @@ window.mgSupabaseClient = client;
     }
 
     window.uploadPhoto = uploadPhoto;
+
+    function startCountdownTimer() {
+      if (countdownTimerId) {
+        clearInterval(countdownTimerId);
+      }
+
+      countdownTimerId = setInterval(() => {
+        renderJobs();
+        updateOpenJobCountdown();
+      }, 60000);
+    }
 
     async function updateJob(jobId, changes, loadingText, options = {}) {
       const closeOnSuccess = Boolean(options.closeOnSuccess);
@@ -3073,6 +3343,7 @@ window.mgSupabaseClient = client;
       const validDriver = await verifyDriver();
 
       if (validDriver) {
+        startCountdownTimer();
         await loadJobs();
       }
     })();
