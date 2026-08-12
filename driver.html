@@ -767,7 +767,7 @@
 
     .detail-summary-value {
       color: var(--ink);
-      font-size: 14px;
+      font-size: 15px;
       font-weight: 800;
       line-height: 1.35;
       overflow-wrap: anywhere;
@@ -797,11 +797,12 @@
 
     .stop-line {
       color: var(--ink);
-      font-size: 14px;
+      font-size: 15px;
       line-height: 1.35;
     }
 
     .stop-name {
+      font-size: 16px;
       font-weight: 900;
     }
 
@@ -864,14 +865,23 @@
     }
 
     .more-info-row {
-      color: var(--muted);
-      font-size: 12px;
+      color: var(--ink);
+      font-size: 14px;
       line-height: 1.4;
       white-space: pre-wrap;
     }
 
     .more-info-row strong {
       color: var(--dark);
+    }
+
+    .more-info-contact-value {
+      color: var(--ink);
+      font-size: 15px;
+      font-weight: 800;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
     .stop-actions {
@@ -1682,22 +1692,57 @@ window.mgSupabaseClient = client;
     }
 
     function stopDisplayName(job, prefix) {
-      const businessName = fieldValue(job, [
+      const directBusinessName = fieldValue(job, [
         prefix + "_company",
-        prefix + "_business"
+        prefix + "_company_name",
+        prefix + "_business",
+        prefix + "_business_name"
       ]);
 
-      if (hasDisplayValue(businessName)) {
-        return businessName;
+      if (hasDisplayValue(directBusinessName)) {
+        return directBusinessName;
       }
 
-      const contactName = fieldValue(job, [
+      const directContactName = fieldValue(job, [
         prefix + "_contact_name",
+        prefix + "_contact_person",
+        prefix + "_contact_full_name",
         prefix + "_contact",
+        prefix + "_customer",
         prefix + "_name"
       ]);
 
-      return hasDisplayValue(contactName) ? contactName : "";
+      if (hasDisplayValue(directContactName)) {
+        return directContactName;
+      }
+
+      const keys = Object.keys(job || {});
+      const prefixToken = prefix + "_";
+      const candidates = keys
+        .filter(key => key.startsWith(prefixToken))
+        .filter(key => /(company|business|contact|customer|name)/i.test(key))
+        .filter(key => !/(address|city|state|zip|postal|postcode|suite|floor|unit|phone|email|note|instruction|photo|_at$|_id$)/i.test(key));
+
+      const ordered = candidates.sort((left, right) => {
+        const rank = key => {
+          if (/(company|business)/i.test(key)) return 1;
+          if (/contact/i.test(key)) return 2;
+          if (/customer/i.test(key)) return 3;
+          if (/name/i.test(key)) return 4;
+          return 5;
+        };
+
+        return rank(left) - rank(right);
+      });
+
+      for (const key of ordered) {
+        const value = fieldValue(job, [key]);
+        if (hasDisplayValue(value)) {
+          return value;
+        }
+      }
+
+      return "";
     }
 
     function summaryValue(job, keys, fallback = "") {
@@ -1769,21 +1814,15 @@ window.mgSupabaseClient = client;
           <div class="more-info-content">
             ${hasPickup ? `
               <div>
-                <div class="more-info-group-title">Pickup</div>
-                <div class="more-info-row">
-                  <strong>Business / Contact:</strong>
-                  ${escapeHtml(pickupName)}
-                </div>
+                <div class="more-info-group-title">Pickup Contact</div>
+                <div class="more-info-contact-value">${escapeHtml(pickupName)}</div>
               </div>
             ` : ""}
 
             ${hasDelivery ? `
               <div>
-                <div class="more-info-group-title">Delivery</div>
-                <div class="more-info-row">
-                  <strong>Business / Contact:</strong>
-                  ${escapeHtml(deliveryName)}
-                </div>
+                <div class="more-info-group-title">Delivery Contact</div>
+                <div class="more-info-contact-value">${escapeHtml(deliveryName)}</div>
               </div>
             ` : ""}
 
