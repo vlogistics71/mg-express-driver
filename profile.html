@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MG Express Driver Profile</title>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    :root {
+      --dark: #064f3b;
+      --green: #087455;
+      --coral: #ff665c;
+      --background: #f6faf8;
+      --white: #ffffff;
+      --ink: #17221e;
+      --muted: #68756f;
+      --line: #dfe8e4;
+      --danger: #a32d2d;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--background);
+      color: var(--ink);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: var(--dark);
+      color: white;
+      padding: 18px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+    }
+
+    .brand {
+      font-size: 23px;
+      font-weight: 900;
+      line-height: 1.08;
+    }
+
+    .brand span {
+      color: var(--coral);
+    }
+
+    .brand-subtitle {
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .signout {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 17px;
+      background: white;
+      color: var(--dark);
+      font-weight: 900;
+      min-width: 108px;
+    }
+
+    .container {
+      width: min(900px, 100%);
+      margin: auto;
+      padding: 22px 18px 55px;
+    }
+
+    .eyebrow {
+      color: var(--muted);
+      font-size: 18px;
+      margin-bottom: 6px;
+    }
+
+    h1 {
+      margin: 0 0 18px;
+      font-size: 40px;
+      line-height: 1.05;
+    }
+
+    .panel {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 14px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, .05);
+    }
+
+    .profile-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .profile-item {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 11px;
+      background: #fbfdfc;
+    }
+
+    .profile-label {
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .profile-value {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 800;
+      line-height: 1.35;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    .empty {
+      padding: 26px;
+      border-radius: 16px;
+      background: #f8fbfa;
+      color: var(--muted);
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .message {
+      margin-top: 14px;
+      padding: 13px;
+      border-radius: 11px;
+      line-height: 1.4;
+    }
+
+    .message.error {
+      background: #fff0f0;
+      color: var(--danger);
+    }
+
+    @media (max-width: 650px) {
+      h1 {
+        font-size: 34px;
+      }
+
+      .profile-value {
+        font-size: 15px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header class="topbar">
+    <div>
+      <div class="brand">MG <span>EXPRESS</span> DRIVER</div>
+      <div class="brand-subtitle">Driver Dashboard</div>
+    </div>
+
+    <button class="signout" id="signOutButton" type="button">
+      Sign Out
+    </button>
+  </header>
+
+  <main class="container">
+    <div class="eyebrow" id="welcomeText">Driver information</div>
+    <h1>My Profile</h1>
+
+    <section class="panel">
+      <div id="profileFields" class="profile-grid">
+        <div class="empty">Loading profile…</div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const client = supabase.createClient(
+      "https://dczlucwfjayymlwbzzdi.supabase.co",
+      "sb_publishable_kcv_a78ZyUxMo2neKUANdw_XN7eAMpI"
+    );
+
+    window.mgSupabaseClient = client;
+
+    const profileFields = document.getElementById("profileFields");
+
+    let currentSession = null;
+    let profileRecord = null;
+    let driverRecord = null;
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.textContent = value ?? "";
+      return div.innerHTML;
+    }
+
+    function firstName(value) {
+      const fullName = String(value || "").trim();
+      if (!fullName) return "";
+      return fullName.split(/\s+/)[0] || "";
+    }
+
+    function greetingText(now) {
+      const hour = now.getHours();
+      if (hour >= 5 && hour < 12) return "Good Morning";
+      if (hour >= 12 && hour < 17) return "Good Afternoon";
+      return "Good Evening";
+    }
+
+    function fieldValue(source, keys) {
+      for (const key of keys) {
+        const value = source?.[key];
+        if (value !== null && value !== undefined && String(value).trim() !== "") {
+          return String(value).trim();
+        }
+      }
+
+      return "";
+    }
+
+    function hasValue(value) {
+      if (value === null || value === undefined) return false;
+      const text = String(value).trim();
+      return text !== "" && text.toLowerCase() !== "not provided";
+    }
+
+    function driverStatusValue() {
+      if (typeof driverRecord?.active === "boolean") {
+        return driverRecord.active ? "Active" : "Inactive";
+      }
+
+      const text = fieldValue(driverRecord, ["status", "driver_status"]);
+      return text;
+    }
+
+    function vehicleMakeModelValue() {
+      const make = fieldValue(driverRecord, ["vehicle_make"]);
+      const model = fieldValue(driverRecord, ["vehicle_model"]);
+      const combined = [make, model].filter(hasValue).join(" ");
+
+      if (hasValue(combined)) return combined;
+
+      return fieldValue(driverRecord, ["vehicle_make_model"]);
+    }
+
+    function profileRows() {
+      const fullName = fieldValue(driverRecord, ["full_name"]) || fieldValue(profileRecord, ["full_name"]);
+      const email = fieldValue(driverRecord, ["email"]) || String(currentSession?.user?.email || "").trim();
+
+      const rows = [
+        { label: "Driver Name", value: fullName },
+        { label: "Email", value: email },
+        {
+          label: "Phone",
+          value:
+            fieldValue(driverRecord, ["phone", "mobile", "phone_number", "contact_phone"]) ||
+            fieldValue(profileRecord, ["phone", "mobile", "phone_number"]) 
+        },
+        {
+          label: "Vehicle Type",
+          value: fieldValue(driverRecord, ["vehicle_type"])
+        },
+        {
+          label: "Vehicle Make / Model",
+          value: vehicleMakeModelValue()
+        },
+        {
+          label: "Vehicle Year",
+          value: fieldValue(driverRecord, ["vehicle_year"])
+        },
+        {
+          label: "License Plate",
+          value: fieldValue(driverRecord, ["license_plate", "vehicle_plate"])
+        },
+        {
+          label: "Service Area",
+          value: fieldValue(driverRecord, ["service_area", "service_region", "coverage_area", "service_zone"])
+        },
+        {
+          label: "Driver Status",
+          value: driverStatusValue()
+        }
+      ];
+
+      return rows.filter(row => hasValue(row.value));
+    }
+
+    function renderProfile() {
+      const rows = profileRows();
+
+      if (!rows.length) {
+        profileFields.innerHTML = '<div class="empty">No profile information is available.</div>';
+        return;
+      }
+
+      profileFields.innerHTML = rows.map(row => `
+        <article class="profile-item">
+          <div class="profile-label">${escapeHtml(row.label)}</div>
+          <div class="profile-value">${escapeHtml(row.value)}</div>
+        </article>
+      `).join("");
+    }
+
+    async function verifyDriver() {
+      const sessionResult = await client.auth.getSession();
+      currentSession = sessionResult.data.session;
+
+      if (!currentSession) {
+        location.replace("/index.html");
+        return false;
+      }
+
+      const profileResult = await client
+        .from("profiles")
+        .select("role,full_name,phone,mobile,phone_number")
+        .eq("id", currentSession.user.id)
+        .maybeSingle();
+
+      profileRecord = profileResult.data || null;
+
+      const role = String(profileRecord?.role || "").toLowerCase();
+      if (role !== "driver") {
+        await client.auth.signOut();
+        location.replace("/index.html");
+        return false;
+      }
+
+      const driverResult = await client
+        .from("drivers")
+        .select("*")
+        .eq("id", currentSession.user.id)
+        .maybeSingle();
+
+      if (driverResult.error || !driverResult.data) {
+        throw new Error(driverResult.error?.message || "No driver record was found for this account.");
+      }
+
+      driverRecord = driverResult.data;
+
+      window.dispatchEvent(
+        new CustomEvent("mg-driver-ready", {
+          detail: {
+            name: driverRecord.full_name,
+            email: driverRecord.email
+          }
+        })
+      );
+
+      const name = firstName(driverRecord.full_name || profileRecord?.full_name);
+      const greeting = greetingText(new Date());
+      document.getElementById("welcomeText").textContent =
+        name ? `${greeting}, ${name}` : greeting;
+
+      return true;
+    }
+
+    document
+      .getElementById("signOutButton")
+      .addEventListener("click", async function () {
+        this.disabled = true;
+        this.textContent = "Signing Out…";
+
+        try {
+          await client.auth.signOut();
+        } finally {
+          localStorage.clear();
+          sessionStorage.clear();
+          location.replace("/index.html");
+        }
+      });
+
+    (async function start() {
+      try {
+        const validDriver = await verifyDriver();
+        if (!validDriver) return;
+
+        renderProfile();
+      } catch (error) {
+        profileFields.innerHTML = `<div class="message error">${escapeHtml(error?.message || "Unable to load profile.")}</div>`;
+      }
+    })();
+  </script>
+
+  <script src="/menu.js"></script>
+</body>
+</html>
