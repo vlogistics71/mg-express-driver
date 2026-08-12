@@ -48,15 +48,14 @@
       background: var(--dark-green);
       color: white;
       padding: 18px 20px;
-    }
-
-    .topbar-inner {
-      width: min(850px, 100%);
-      margin: auto;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
+      gap: 15px;
+    }
+
+    .topbar-inner {
+      width: 100%;
     }
 
     .brand {
@@ -74,6 +73,23 @@
       font-size: 13px;
       opacity: .82;
       overflow-wrap: anywhere;
+    }
+
+    .brand-subtitle {
+      margin-top: 6px;
+      font-size: 13px;
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    .signout {
+      border: 0;
+      border-radius: 14px;
+      padding: 14px 17px;
+      background: white;
+      color: var(--dark-green);
+      font-weight: 900;
+      min-width: 108px;
     }
 
     .container {
@@ -267,12 +283,13 @@
           MG <span>EXPRESS</span> DRIVER
         </div>
 
-        <div
-          class="driver-email"
-          id="driverEmail"
-        ></div>
+        <div class="brand-subtitle">Driver Dashboard</div>
       </div>
     </div>
+
+    <button class="signout" id="signOutButton" type="button">
+      Sign Out
+    </button>
   </header>
 
   <main class="container">
@@ -356,6 +373,7 @@
       document.getElementById("payJobs");
 
     let driver = null;
+    let deliveredJobs = [];
     let weeklyJobs = [];
 
     function escapeHtml(value) {
@@ -374,34 +392,23 @@
       );
     }
 
-    function startOfToday() {
+    function beginningOfToday() {
       const date = new Date();
       date.setHours(0, 0, 0, 0);
       return date;
     }
 
-    function startOfCurrentWeek() {
-      const date = startOfToday();
+    function beginningOfWeek() {
+      const date = beginningOfToday();
       const day = date.getDay();
-      const daysSinceMonday =
-        day === 0 ? 6 : day - 1;
-
-      date.setDate(
-        date.getDate() - daysSinceMonday
-      );
-
-      return date;
-    }
-
-    function endOfCurrentWeek() {
-      const date = startOfCurrentWeek();
-      date.setDate(date.getDate() + 7);
+      const difference = day === 0 ? 6 : day - 1;
+      date.setDate(date.getDate() - difference);
       return date;
     }
 
     function jobCompletedDate(job) {
       return new Date(
-        job.delivery_photo_uploaded_at ||
+        job.completed_at ||
         job.created_at
       );
     }
@@ -431,37 +438,16 @@
     }
 
     function updateSummary() {
-      const todayStart = startOfToday();
-      const tomorrowStart = new Date(todayStart);
-
-      tomorrowStart.setDate(
-        tomorrowStart.getDate() + 1
-      );
-
-      const todayJobs =
-        weeklyJobs.filter(job => {
-          const completed =
-            jobCompletedDate(job);
-
-          return (
-            completed >= todayStart &&
-            completed < tomorrowStart
+      const totalSince = start =>
+        deliveredJobs
+          .filter(job => jobCompletedDate(job) >= start)
+          .reduce(
+            (total, job) => total + Number(job.driver_pay || 0),
+            0
           );
-        });
 
-      const todayTotal =
-        todayJobs.reduce(
-          (total, job) =>
-            total + Number(job.driver_pay || 0),
-          0
-        );
-
-      const weekTotal =
-        weeklyJobs.reduce(
-          (total, job) =>
-            total + Number(job.driver_pay || 0),
-          0
-        );
+      const todayTotal = totalSince(beginningOfToday());
+      const weekTotal = totalSince(beginningOfWeek());
 
       document
         .getElementById("todayPay")
@@ -475,15 +461,9 @@
         .getElementById("todayDate")
         .textContent = formatDate(new Date());
 
-      const weekStart =
-        startOfCurrentWeek();
-
-      const weekEnd =
-        new Date(endOfCurrentWeek());
-
-      weekEnd.setDate(
-        weekEnd.getDate() - 1
-      );
+      const weekStart = beginningOfWeek();
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
 
       document
         .getElementById("weekDates")
@@ -571,11 +551,6 @@
         return false;
       }
 
-      document
-        .getElementById("driverEmail")
-        .textContent =
-          session.user.email || "";
-
       const driverResult = await client
         .from("drivers")
         .select(
@@ -632,14 +607,13 @@
           driver_pay,
           status,
           assigned_driver_id,
-          delivery_photo_uploaded_at,
+          completed_at,
           created_at
         `)
         .eq(
           "assigned_driver_id",
           driver.id
         )
-        .eq("status", "delivered")
         .order(
           "created_at",
           {
@@ -651,23 +625,23 @@
         throw result.error;
       }
 
-      const weekStart =
-        startOfCurrentWeek();
+      deliveredJobs = (result.data || []).filter(job => {
+        return String(job.status || "").toLowerCase() === "delivered";
+      });
 
-      const weekEnd =
-        endOfCurrentWeek();
+      const weekStart = beginningOfWeek();
 
-      weeklyJobs =
-        (result.data || []).filter(job => {
+      weeklyJobs = deliveredJobs
+        .filter(job => {
           const completed =
             jobCompletedDate(job);
 
           return (
             !Number.isNaN(completed.getTime()) &&
-            completed >= weekStart &&
-            completed < weekEnd
+            completed >= weekStart
           );
-        });
+        })
+        .sort((left, right) => jobCompletedDate(right) - jobCompletedDate(left));
 
       renderJobs();
     }
@@ -713,6 +687,21 @@
           }
         }
       );
+
+    document
+      .getElementById("signOutButton")
+      .addEventListener("click", async function () {
+        this.disabled = true;
+        this.textContent = "Signing Out…";
+
+        try {
+          await client.auth.signOut();
+        } finally {
+          localStorage.clear();
+          sessionStorage.clear();
+          location.replace("/index.html");
+        }
+      });
 
     startPage();
   </script>

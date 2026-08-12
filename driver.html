@@ -823,6 +823,57 @@
       line-height: 1.4;
     }
 
+    .more-info {
+      margin-top: 10px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: #fbfdfc;
+      overflow: hidden;
+    }
+
+    .more-info summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 11px 12px;
+      font-size: 13px;
+      font-weight: 900;
+      color: var(--dark);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .more-info summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .more-info-content {
+      border-top: 1px solid var(--line);
+      padding: 10px 12px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .more-info-group-title {
+      color: var(--green);
+      font-size: 11px;
+      font-weight: 900;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .more-info-row {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .more-info-row strong {
+      color: var(--dark);
+    }
+
     .stop-actions {
       margin-top: 10px;
       display: flex;
@@ -1668,7 +1719,6 @@ window.mgSupabaseClient = client;
     function renderStopCard(job, prefix, title) {
       const name = stopDisplayName(job, prefix);
       const lines = stopAddressLines(job, prefix);
-      const notes = fieldValue(job, [prefix + "_notes", prefix + "_instructions"]);
 
       return `
         <div class="stop-card">
@@ -1677,11 +1727,74 @@ window.mgSupabaseClient = client;
             ${hasDisplayValue(name) ? `<div class="stop-line stop-name">${escapeHtml(name)}</div>` : ""}
             ${lines.map(line => `<div class="stop-line">${escapeHtml(line)}</div>`).join("")}
           </div>
-          ${hasDisplayValue(notes) ? `<div class="stop-note">${escapeHtml(notes)}</div>` : ""}
           <div class="stop-actions">
             <button class="action directions" type="button" onclick="navigateForStop('${job.id}','${prefix.toUpperCase()}')">Navigate</button>
           </div>
         </div>
+      `;
+    }
+
+    function dispatchNotesValue(job) {
+      return fieldValue(job, [
+        "dispatch_notes",
+        "special_instructions",
+        "delivery_notes",
+        "delivery_instructions",
+        "driver_notes",
+        "pickup_notes",
+        "pickup_instructions"
+      ]);
+    }
+
+    function renderMoreInfo(job) {
+      const pickupName = stopDisplayName(job, "pickup");
+      const deliveryName = stopDisplayName(job, "delivery");
+      const notes = dispatchNotesValue(job);
+
+      const hasPickup = hasDisplayValue(pickupName);
+      const hasDelivery = hasDisplayValue(deliveryName);
+      const hasNotes = hasDisplayValue(notes);
+
+      if (!hasPickup && !hasDelivery && !hasNotes) {
+        return "";
+      }
+
+      return `
+        <details class="more-info">
+          <summary>
+            More Info
+            <span>▼</span>
+          </summary>
+
+          <div class="more-info-content">
+            ${hasPickup ? `
+              <div>
+                <div class="more-info-group-title">Pickup</div>
+                <div class="more-info-row">
+                  <strong>Business / Contact:</strong>
+                  ${escapeHtml(pickupName)}
+                </div>
+              </div>
+            ` : ""}
+
+            ${hasDelivery ? `
+              <div>
+                <div class="more-info-group-title">Delivery</div>
+                <div class="more-info-row">
+                  <strong>Business / Contact:</strong>
+                  ${escapeHtml(deliveryName)}
+                </div>
+              </div>
+            ` : ""}
+
+            ${hasNotes ? `
+              <div>
+                <div class="more-info-group-title">Dispatch Notes</div>
+                <div class="more-info-row">${escapeHtml(notes)}</div>
+              </div>
+            ` : ""}
+          </div>
+        </details>
       `;
     }
 
@@ -2592,6 +2705,8 @@ window.mgSupabaseClient = client;
           <div class="modal-divider-arrow">↓</div>
           ${renderStopCard(job, "delivery", "Delivery")}
         </div>
+
+        ${renderMoreInfo(job)}
 
         <div class="compact-actions">
           ${customerPhone ? `<button class="action directions" type="button" onclick="window.location.href='tel:${escapeHtml(customerPhone)}'">Call Customer</button>` : ""}
