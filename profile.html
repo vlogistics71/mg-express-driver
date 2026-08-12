@@ -332,13 +332,6 @@
 
       profileRecord = profileResult.data || null;
 
-      const role = String(profileRecord?.role || "").toLowerCase();
-      if (role !== "driver") {
-        await client.auth.signOut();
-        location.replace("/index.html");
-        return false;
-      }
-
       const driverResult = await client
         .from("drivers")
         .select("*")
@@ -346,7 +339,16 @@
         .maybeSingle();
 
       if (driverResult.error || !driverResult.data) {
-        throw new Error(driverResult.error?.message || "No driver record was found for this account.");
+        await client.auth.signOut();
+        location.replace("/index.html");
+        return false;
+      }
+
+      const role = String(profileRecord?.role || "").toLowerCase();
+      if (role && role !== "driver") {
+        await client.auth.signOut();
+        location.replace("/index.html");
+        return false;
       }
 
       driverRecord = driverResult.data;
