@@ -1866,7 +1866,7 @@ window.mgSupabaseClient = client;
     window.openPhotoPicker = openPhotoPicker;
 
     function photoStageForState(state) {
-      if (["picked_up", "driving_to_delivery", "arrived_delivery"].includes(state)) {
+      if (["picked_up", "driving_to_delivery", "arrived_delivery", "arrived_at_delivery"].includes(state)) {
         return "delivery";
       }
 
@@ -2357,8 +2357,10 @@ window.mgSupabaseClient = client;
       }
 
       if (status === "en_route_to_pickup") return "driving_to_pickup";
-      if (status === "picked_up") return "picked_up";
+      if (status === "arrived_at_pickup") return "arrived_at_pickup";
+      if (status === "picked_up") return "driving_to_delivery";
       if (status === "en_route_to_delivery") return "driving_to_delivery";
+      if (status === "arrived_at_delivery") return "arrived_at_delivery";
       if (status === "delivered") return "delivered";
 
       return "other";
@@ -2664,17 +2666,23 @@ window.mgSupabaseClient = client;
 
       if (state === "driving_to_pickup") {
         return `
-          <button class="action primary" type="button" onclick="markPickedUp('${job.id}',this)">Picked Up</button>
+          <button class="action primary" type="button" onclick="markArrivedAtPickup('${job.id}',this)">I've Arrived</button>
         `;
       }
 
-      if (state === "picked_up") {
+      if (state === "arrived_at_pickup") {
         return `
-          <button class="action primary" type="button" onclick="markEnRouteToDelivery('${job.id}',this)">Start Driving to Delivery</button>
+          <button class="action primary" type="button" onclick="markPickedUp('${job.id}',this)">Confirm Pickup</button>
         `;
       }
 
       if (state === "driving_to_delivery") {
+        return `
+          <button class="action primary" type="button" onclick="markArrivedAtDelivery('${job.id}',this)">I've Arrived at Delivery</button>
+        `;
+      }
+
+      if (state === "arrived_at_delivery") {
         return `
           <button class="action primary" type="button" onclick="markDelivered('${job.id}',this)">Complete Delivery</button>
         `;
@@ -2690,8 +2698,10 @@ window.mgSupabaseClient = client;
     function workflowStatusForDatabase(displayStatus) {
       const map = {
         en_route_to_pickup: "en_route_pickup",
+        arrived_at_pickup: "arrived_pickup",
         picked_up: "picked_up",
         en_route_to_delivery: "en_route_delivery",
+        arrived_at_delivery: "arrived_delivery",
         delivered: "delivered"
       };
 
@@ -2700,7 +2710,7 @@ window.mgSupabaseClient = client;
 
     function renderJobDetailsModal(job) {
       const state = workflowState(job);
-      const showDeliveryProof = state === "driving_to_delivery";
+      const showDeliveryProof = state === "arrived_at_delivery";
       const countdown = countdownInfo(job);
       const customerPhone = fieldValue(job, ["customer_phone", "phone", "customer_phone_number"]);
       const packageType = summaryValue(job, ["package_type"]);
@@ -2761,7 +2771,7 @@ window.mgSupabaseClient = client;
                   <input
                     id="podRecipientModal-${job.id}"
                     type="text"
-                    value="${escapeHtml(podRecipientValue(job))}"
+                    value=""
                     placeholder="John Smith"
                   >
                 </label>
@@ -3268,11 +3278,11 @@ window.mgSupabaseClient = client;
 
     window.markEnRouteToPickup = markEnRouteToPickup;
 
-    async function markPickedUp(jobId, buttonElement) {
+    async function markArrivedAtPickup(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
       await updateJob(
         jobId,
-        workflowUpdate("picked_up")(selectedJob),
+        workflowUpdate("arrived_at_pickup")(selectedJob),
         "Updating job status…",
         {
           buttonElement,
@@ -3281,7 +3291,89 @@ window.mgSupabaseClient = client;
       );
     }
 
+    window.markArrivedAtPickup = markArrivedAtPickup;
+
+    async function markPickedUp(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
+
+      if (!selectedJob?.id) {
+        showJobMessage(jobId, "Selected job could not be found.", "error");
+        return;
+      }
+
+      setModalBusy(true);
+
+      if (buttonElement) {
+        buttonElement.disabled = true;
+      }
+
+      showJobMessage(jobId, "Confirming pickup…", "info");
+
+      const pickedUpChanges = workflowUpdate("picked_up")(selectedJob);
+
+      if (Object.prototype.hasOwnProperty.call(selectedJob, "picked_up_at")) {
+        pickedUpChanges.picked_up_at = new Date().toISOString();
+      }
+
+      const pickedUpResult = await client
+        .from("quotes")
+        .update(pickedUpChanges)
+        .eq("id", selectedJob.id)
+        .eq("assigned_driver_id", driver.id);
+
+      if (pickedUpResult.error) {
+        setModalBusy(false);
+
+        if (buttonElement) {
+          buttonElement.disabled = false;
+        }
+
+        showJobMessage(jobId, pickedUpResult.error.message, "error");
+        return;
+      }
+
+      const transitResult = await client
+        .from("quotes")
+        .update(workflowUpdate("en_route_to_delivery")(selectedJob))
+        .eq("id", selectedJob.id)
+        .eq("assigned_driver_id", driver.id);
+
+      if (transitResult.error) {
+        setModalBusy(false);
+
+        if (buttonElement) {
+          buttonElement.disabled = false;
+        }
+
+        showJobMessage(jobId, transitResult.error.message, "error");
+        return;
+      }
+
+      await loadJobs();
+      showToast("Pickup confirmed. In transit to delivery.", "success");
+      setModalBusy(false);
+
+      if (buttonElement) {
+        buttonElement.disabled = false;
+      }
+    }
+
     window.markPickedUp = markPickedUp;
+
+    async function markArrivedAtDelivery(jobId, buttonElement) {
+      const selectedJob = getSelectedJob(jobId);
+      await updateJob(
+        jobId,
+        workflowUpdate("arrived_at_delivery")(selectedJob),
+        "Updating job status…",
+        {
+          buttonElement,
+          successToast: "Status updated"
+        }
+      );
+    }
+
+    window.markArrivedAtDelivery = markArrivedAtDelivery;
 
     async function markEnRouteToDelivery(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
