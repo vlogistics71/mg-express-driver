@@ -1385,6 +1385,12 @@ window.mgSupabaseClient = client;
     function normalizeJobStatus(job) {
       const workflowStatus = String(job?.driver_workflow_status || "").toLowerCase();
       const rawStatus = String(job?.status || "assigned").toLowerCase();
+
+      // Keep arrived-at-delivery UI state while workflow_status stays in transit.
+      if (rawStatus === "arrived_at_delivery" && workflowStatus === "en_route_delivery") {
+        return "arrived_at_delivery";
+      }
+
       const source = workflowStatus || rawStatus;
 
       if (source === "new") return "assigned";
@@ -2699,7 +2705,6 @@ window.mgSupabaseClient = client;
         en_route_to_pickup: "en_route_pickup",
         picked_up: "picked_up",
         en_route_to_delivery: "en_route_delivery",
-        arrived_at_delivery: "arrived_delivery",
         delivered: "delivered"
       };
 
@@ -3279,24 +3284,89 @@ window.mgSupabaseClient = client;
     async function markPickedUp(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
 
-      await updateJob(
-        jobId,
-        workflowUpdate("picked_up")(selectedJob),
-        "Updating job status…",
-        {
-          buttonElement,
-          successToast: "Status updated"
+      if (!selectedJob?.id) {
+        showJobMessage(jobId, "Selected job could not be found.", "error");
+        return;
+      }
+
+      setModalBusy(true);
+
+      if (buttonElement) {
+        buttonElement.disabled = true;
+      }
+
+      showJobMessage(jobId, "Updating job status…", "info");
+
+      const pickedUpChanges = workflowUpdate("picked_up")(selectedJob);
+
+      if (Object.prototype.hasOwnProperty.call(selectedJob, "picked_up_at")) {
+        pickedUpChanges.picked_up_at = new Date().toISOString();
+      }
+
+      const pickedUpResult = await client
+        .from("quotes")
+        .update(pickedUpChanges)
+        .eq("id", selectedJob.id)
+        .eq("assigned_driver_id", driver.id);
+
+      if (pickedUpResult.error) {
+        setModalBusy(false);
+
+        if (buttonElement) {
+          buttonElement.disabled = false;
         }
-      );
+
+        showJobMessage(jobId, pickedUpResult.error.message, "error");
+        return;
+      }
+
+      const transitResult = await client
+        .from("quotes")
+        .update(workflowUpdate("en_route_to_delivery")(selectedJob))
+        .eq("id", selectedJob.id)
+        .eq("assigned_driver_id", driver.id);
+
+      if (transitResult.error) {
+        setModalBusy(false);
+
+        if (buttonElement) {
+          buttonElement.disabled = false;
+        }
+
+        showJobMessage(jobId, transitResult.error.message, "error");
+        return;
+      }
+
+      await loadJobs();
+      showToast("Status updated", "success");
+      setModalBusy(false);
+
+      if (buttonElement) {
+        buttonElement.disabled = false;
+      }
     }
 
     window.markPickedUp = markPickedUp;
 
     async function markArrivedAtDelivery(jobId, buttonElement) {
       const selectedJob = getSelectedJob(jobId);
+
+      if (!selectedJob?.id) {
+        showJobMessage(jobId, "Selected job could not be found.", "error");
+        return;
+      }
+
+      const changes = {
+        status: "arrived_at_delivery"
+      };
+
+      if (usesDriverWorkflowStatus(selectedJob)) {
+        changes.driver_workflow_status = workflowStatusForDatabase("en_route_to_delivery");
+      }
+
       await updateJob(
         jobId,
-        workflowUpdate("arrived_at_delivery")(selectedJob),
+        changes,
         "Updating job status…",
         {
           buttonElement,
