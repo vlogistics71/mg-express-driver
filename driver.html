@@ -3308,11 +3308,13 @@ window.mgSupabaseClient = client;
 
       const recipientInput = document.getElementById("podRecipientModal-" + jobId);
       const recipientName = String(recipientInput?.value || "").trim();
+      const hasRecipientName = recipientName.length > 0;
+      const hasDeliveryPhoto = Boolean(String(selectedJob.delivery_photo_url || "").trim());
 
-      if (!recipientName) {
+      if (!hasRecipientName && !hasDeliveryPhoto) {
         showJobMessage(
           jobId,
-          "Enter the name of the person who received the delivery.",
+          "Enter who received the delivery or add a delivery photo.",
           "error"
         );
 
@@ -3337,7 +3339,9 @@ window.mgSupabaseClient = client;
         changes.driver_workflow_status = workflowStatusForDatabase("delivered");
       }
 
-      changes[podField] = recipientName;
+      if (hasRecipientName) {
+        changes[podField] = recipientName;
+      }
 
       const result = await client
         .from("quotes")
