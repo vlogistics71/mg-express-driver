@@ -1919,11 +1919,11 @@ window.mgSupabaseClient = client;
       const stage = photoStageForJob(job);
 
       if (stage === "pickup") {
-        return String(job?.pickup_photo_url || "").trim();
+        return String(job?._pickup_photo_signed_url || "").trim();
       }
 
       if (stage === "delivery") {
-        return String(job?.delivery_photo_url || "").trim();
+        return String(job?._delivery_photo_signed_url || "").trim();
       }
 
       return "";
@@ -2548,8 +2548,8 @@ window.mgSupabaseClient = client;
     function renderPhotoArea(job, type) {
       const isPickup = type === "pickup";
       const url = isPickup
-        ? job.pickup_photo_url
-        : job.delivery_photo_url;
+        ? job._pickup_photo_signed_url
+        : job._delivery_photo_signed_url;
 
       const time = isPickup
         ? job.pickup_photo_uploaded_at
@@ -2963,6 +2963,7 @@ window.mgSupabaseClient = client;
         }
 
         jobs = result.data || [];
+        await attachPrivatePhotoLinks(jobs);
         renderJobs();
 
         if (selectedJobId) {
@@ -2989,6 +2990,45 @@ window.mgSupabaseClient = client;
           activeJobsBox.innerHTML = '<div class="empty">No active jobs are currently assigned.</div>';
         }
       }
+    }
+
+    function deliveryPhotoPath(value) {
+      const reference = String(value || "").trim();
+      if (!reference) return "";
+
+      const marker = "/storage/v1/object/public/delivery-photos/";
+      const markerIndex = reference.indexOf(marker);
+      if (markerIndex >= 0) {
+        try {
+          return decodeURIComponent(reference.slice(markerIndex + marker.length));
+        } catch (_error) {
+          return reference.slice(markerIndex + marker.length);
+        }
+      }
+
+      return reference.replace(/^\/+/, "");
+    }
+
+    async function signedDeliveryPhotoUrl(value) {
+      const path = deliveryPhotoPath(value);
+      if (!path) return "";
+
+      const result = await client.storage
+        .from("delivery-photos")
+        .createSignedUrl(path, 600);
+
+      return result.error ? "" : String(result.data?.signedUrl || "");
+    }
+
+    async function attachPrivatePhotoLinks(rows) {
+      await Promise.all((rows || []).map(async job => {
+        const [pickupUrl, deliveryUrl] = await Promise.all([
+          signedDeliveryPhotoUrl(job.pickup_photo_url),
+          signedDeliveryPhotoUrl(job.delivery_photo_url)
+        ]);
+        job._pickup_photo_signed_url = pickupUrl;
+        job._delivery_photo_signed_url = deliveryUrl;
+      }));
     }
 
     async function uploadPhoto(jobId, type, input) {
@@ -3061,19 +3101,13 @@ window.mgSupabaseClient = client;
         return;
       }
 
-      const publicResult = client.storage
-        .from("delivery-photos")
-        .getPublicUrl(path);
-
-      const publicUrl = publicResult.data.publicUrl;
-
       const updateData = type === "pickup"
         ? {
-            pickup_photo_url: publicUrl,
+            pickup_photo_url: path,
             pickup_photo_uploaded_at: new Date().toISOString()
           }
         : {
-            delivery_photo_url: publicUrl,
+            delivery_photo_url: path,
             delivery_photo_uploaded_at: new Date().toISOString()
           };
 
