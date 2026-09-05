@@ -1912,7 +1912,9 @@ window.mgSupabaseClient = client;
         return "Delivery photo saved.";
       }
 
-      return "Photos are optional.";
+      return stage === "pickup"
+        ? "A pickup photo is required before marking the job picked up."
+        : "A delivery photo is required before completing the job.";
     }
 
     function workflowStagePhotoUrl(job) {
@@ -3323,6 +3325,11 @@ window.mgSupabaseClient = client;
         return;
       }
 
+      if (!String(selectedJob.pickup_photo_url || "").trim()) {
+        showJobMessage(jobId, "Add the required pickup photo before marking this job picked up.", "error");
+        return;
+      }
+
       setModalBusy(true);
 
       if (buttonElement) {
@@ -3436,13 +3443,12 @@ window.mgSupabaseClient = client;
 
       const recipientInput = document.getElementById("podRecipientModal-" + jobId);
       const recipientName = String(recipientInput?.value || "").trim();
-      const hasRecipientName = recipientName.length > 0;
       const hasDeliveryPhoto = Boolean(String(selectedJob.delivery_photo_url || "").trim());
 
-      if (!hasRecipientName && !hasDeliveryPhoto) {
+      if (!hasDeliveryPhoto) {
         showJobMessage(
           jobId,
-          "Enter who received the delivery or add a delivery photo.",
+          "Add the required delivery photo before completing this job.",
           "error"
         );
 
@@ -3467,7 +3473,7 @@ window.mgSupabaseClient = client;
         changes.driver_workflow_status = workflowStatusForDatabase("delivered");
       }
 
-      if (hasRecipientName) {
+      if (recipientName.length > 0) {
         changes[podField] = recipientName;
       }
 
