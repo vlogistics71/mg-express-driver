@@ -2949,16 +2949,19 @@ window.mgSupabaseClient = client;
       return true;
     }
 
+    async function updateDriverJobRecord(jobId, changes) {
+      return client.rpc("driver_portal_update_job", {
+        p_job_id: jobId,
+        p_changes: changes
+      });
+    }
+
     async function loadJobs() {
       activeJobsBox.innerHTML =
         '<div class="empty">Loading assigned jobs…</div>';
 
       try {
-        const result = await client
-          .from("quotes")
-          .select("*")
-          .eq("assigned_driver_id", driver.id)
-          .order("created_at", { ascending: false });
+        const result = await client.rpc("driver_portal_jobs");
 
         if (result.error) {
           throw result.error;
@@ -3113,11 +3116,10 @@ window.mgSupabaseClient = client;
             delivery_photo_uploaded_at: new Date().toISOString()
           };
 
-      const updateResult = await client
-        .from("quotes")
-        .update(updateData)
-        .eq("id", selectedJob.id)
-        .eq("assigned_driver_id", driver.id);
+      const updateResult = await updateDriverJobRecord(
+        selectedJob.id,
+        updateData
+      );
 
       if (updateResult.error) {
         setModalBusy(false);
@@ -3180,11 +3182,10 @@ window.mgSupabaseClient = client;
         showJobMessage(jobId, loadingText, "info");
       }
 
-      const result = await client
-        .from("quotes")
-        .update(changes)
-        .eq("id", selectedJob.id)
-        .eq("assigned_driver_id", driver.id);
+      const result = await updateDriverJobRecord(
+        selectedJob.id,
+        changes
+      );
 
       if (result.error) {
         setModalBusy(false);
@@ -3247,15 +3248,13 @@ window.mgSupabaseClient = client;
       try {
         const rejectedAt = new Date().toISOString();
 
-        const result = await client
-          .from("quotes")
-          .update({
+        const result = await updateDriverJobRecord(
+          selectedJob.id,
+          {
             driver_acceptance_status: "rejected",
             driver_rejected_at: rejectedAt
-          })
-          .eq("id", selectedJob.id)
-          .select()
-          .single();
+          }
+        );
 
         if (result.error) {
           throw result.error;
@@ -3344,11 +3343,10 @@ window.mgSupabaseClient = client;
         pickedUpChanges.picked_up_at = new Date().toISOString();
       }
 
-      const pickedUpResult = await client
-        .from("quotes")
-        .update(pickedUpChanges)
-        .eq("id", selectedJob.id)
-        .eq("assigned_driver_id", driver.id);
+      const pickedUpResult = await updateDriverJobRecord(
+        selectedJob.id,
+        pickedUpChanges
+      );
 
       if (pickedUpResult.error) {
         setModalBusy(false);
@@ -3361,11 +3359,10 @@ window.mgSupabaseClient = client;
         return;
       }
 
-      const transitResult = await client
-        .from("quotes")
-        .update(workflowUpdate("en_route_to_delivery")(selectedJob))
-        .eq("id", selectedJob.id)
-        .eq("assigned_driver_id", driver.id);
+      const transitResult = await updateDriverJobRecord(
+        selectedJob.id,
+        workflowUpdate("en_route_to_delivery")(selectedJob)
+      );
 
       if (transitResult.error) {
         setModalBusy(false);
@@ -3477,11 +3474,10 @@ window.mgSupabaseClient = client;
         changes[podField] = recipientName;
       }
 
-      const result = await client
-        .from("quotes")
-        .update(changes)
-        .eq("id", selectedJob.id)
-        .eq("assigned_driver_id", driver.id);
+      const result = await updateDriverJobRecord(
+        selectedJob.id,
+        changes
+      );
 
       if (result.error) {
         setModalBusy(false);
