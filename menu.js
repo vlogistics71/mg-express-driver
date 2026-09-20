@@ -292,9 +292,9 @@
 
       try {
         if (window.mgSupabaseClient) {
-          await window.mgSupabaseClient.auth.signOut();
+          await window.mgSupabaseClient.auth.signOut({ scope: "local" });
         } else if (window.client) {
-          await window.client.auth.signOut();
+          await window.client.auth.signOut({ scope: "local" });
         }
       } finally {
         localStorage.clear();
