@@ -2739,63 +2739,63 @@ window.mgSupabaseClient = client;
       const attempts = attemptsResult.data || [];
       const acceptance = String(job.driver_acceptance_status || "").toLowerCase();
       const accepted = acceptance === "accepted" || !acceptance;
-      const history = attempts.length ? attempts.map(a => \`
+      const history = attempts.length ? attempts.map(a => `
         <div class="modal-item">
-          <div class="modal-value"><strong>\${escapeHtml(serveOutcomeLabel(a.outcome))}</strong></div>
-          <div class="modal-value">\${escapeHtml(formatDate(a.attempted_at))}</div>
-          \${a.notes ? '<div class="modal-value">' + escapeHtml(a.notes) + '</div>' : ''}
-          <div class="modal-label" style="margin-top:5px">GPS captured\${a.gps_accuracy_meters ? " • ±" + Math.round(a.gps_accuracy_meters) + " m" : ""}</div>
-          \${a.photo_path && a.is_mine ? '<button class="action directions" style="margin-top:8px" type="button" onclick="viewServeEvidence(\\'' + escapeHtml(a.photo_path) + '\\')">View Photo Evidence</button>' : ''}
-        </div>\`).join("") : '<div class="modal-note">No attempts logged yet.</div>';
+          <div class="modal-value"><strong>${escapeHtml(serveOutcomeLabel(a.outcome))}</strong></div>
+          <div class="modal-value">${escapeHtml(formatDate(a.attempted_at))}</div>
+          ${a.notes ? '<div class="modal-value">' + escapeHtml(a.notes) + '</div>' : ''}
+          <div class="modal-label" style="margin-top:5px">GPS captured${a.gps_accuracy_meters ? " • ±" + Math.round(a.gps_accuracy_meters) + " m" : ""}</div>
+          ${a.photo_path && a.is_mine ? '<button class="action directions" style="margin-top:8px" type="button" onclick="viewServeEvidence(\\'' + escapeHtml(a.photo_path) + '\\')">View Photo Evidence</button>' : ''}
+        </div>`).join("") : '<div class="modal-note">No attempts logged yet.</div>';
 
-      jobModalContent.innerHTML = \`
+      jobModalContent.innerHTML = `
         <h3 id="jobModalTitle" class="modal-title">Process Serve</h3>
         <div class="modal-status-row">
-          <div class="status status-assigned">\${escapeHtml(String(serve.serve_status || "new").replaceAll("_"," "))}</div>
-          <div class="category-badge">\${escapeHtml(job.job_number)}</div>
+          <div class="status status-assigned">${escapeHtml(String(serve.serve_status || "new").replaceAll("_"," "))}</div>
+          <div class="category-badge">${escapeHtml(job.job_number)}</div>
         </div>
         <div class="modal-section-title">Case & Service</div>
         <div class="modal-grid">
-          <div class="modal-item"><div class="modal-label">Person to Serve</div><div class="modal-value"><strong>\${escapeHtml(serve.person_to_serve)}</strong></div></div>
-          <div class="modal-item"><div class="modal-label">Serve By</div><div class="modal-value">\${escapeHtml(formatDate(serve.service_deadline) || "Not specified")}</div></div>
-          <div class="modal-item"><div class="modal-label">Case Number</div><div class="modal-value">\${escapeHtml(serve.case_number || "—")}</div></div>
-          <div class="modal-item"><div class="modal-label">Court</div><div class="modal-value">\${escapeHtml(serve.court_name || "—")}</div></div>
+          <div class="modal-item"><div class="modal-label">Person to Serve</div><div class="modal-value"><strong>${escapeHtml(serve.person_to_serve)}</strong></div></div>
+          <div class="modal-item"><div class="modal-label">Serve By</div><div class="modal-value">${escapeHtml(formatDate(serve.service_deadline) || "Not specified")}</div></div>
+          <div class="modal-item"><div class="modal-label">Case Number</div><div class="modal-value">${escapeHtml(serve.case_number || "—")}</div></div>
+          <div class="modal-item"><div class="modal-label">Court</div><div class="modal-value">${escapeHtml(serve.court_name || "—")}</div></div>
         </div>
         <div class="modal-section-title">Service Address</div>
         <div class="stop-card">
-          <div class="stop-line stop-name">\${escapeHtml(serve.service_address)}</div>
-          <div class="stop-actions"><button id="serveDirections-\${job.id}" class="action directions" type="button">Directions</button></div>
+          <div class="stop-line stop-name">${escapeHtml(serve.service_address)}</div>
+          <div class="stop-actions"><button id="serveDirections-${job.id}" class="action directions" type="button">Directions</button></div>
         </div>
         <div class="modal-section-title">Documents & Instructions</div>
-        <div class="modal-item"><div class="modal-label">Documents</div><div class="modal-value">\${escapeHtml(serve.documents_to_serve || "Not specified")}</div></div>
-        \${serve.special_instructions ? '<div class="modal-item" style="margin-top:8px"><div class="modal-label">Special Instructions</div><div class="modal-value">' + escapeHtml(serve.special_instructions) + '</div></div>' : ''}
+        <div class="modal-item"><div class="modal-label">Documents</div><div class="modal-value">${escapeHtml(serve.documents_to_serve || "Not specified")}</div></div>
+        ${serve.special_instructions ? '<div class="modal-item" style="margin-top:8px"><div class="modal-label">Special Instructions</div><div class="modal-value">' + escapeHtml(serve.special_instructions) + '</div></div>' : ''}
         <div class="modal-section-title">Assignment</div>
-        \${!accepted ? \`
+        ${!accepted ? `
           <div class="button-grid">
-            <button class="action primary" type="button" onclick="acceptProcessServe('\${job.id}', this)">Accept Serve</button>
-            <button class="action directions" type="button" onclick="rejectJob('\${job.id}', this)">Reject</button>
+            <button class="action primary" type="button" onclick="acceptProcessServe('${job.id}', this)">Accept Serve</button>
+            <button class="action directions" type="button" onclick="rejectJob('${job.id}', this)">Reject</button>
           </div>
-        \` : \`
+        ` : `
           <div class="workflow-panel">
             <div class="modal-section-title">Log Attempt</div>
             <label>Outcome
-              <select id="serveOutcome-\${job.id}">
+              <select id="serveOutcome-${job.id}">
                 <option value="">Select outcome…</option><option value="served_personal">Personal Service</option><option value="served_substitute">Substitute Service</option><option value="posted">Posted</option><option value="refused">Refused</option><option value="no_answer">No Answer</option><option value="bad_address">Bad Address</option><option value="unable_to_serve">Unable to Serve</option><option value="other">Other</option>
               </select>
             </label>
-            <label style="margin-top:10px">Attempt Notes<textarea id="serveNotes-\${job.id}" placeholder="What happened at the address?"></textarea></label>
+            <label style="margin-top:10px">Attempt Notes<textarea id="serveNotes-${job.id}" placeholder="What happened at the address?"></textarea></label>
             <div class="detail-summary-grid">
-              <div class="detail-summary-item"><div class="modal-label">Date & Time</div><div class="detail-summary-value">\${escapeHtml(new Date().toLocaleString())}</div></div>
-              <div class="detail-summary-item"><div class="modal-label">GPS</div><div class="detail-summary-value" id="serveGps-\${job.id}">Not captured</div></div>
+              <div class="detail-summary-item"><div class="modal-label">Date & Time</div><div class="detail-summary-value">${escapeHtml(new Date().toLocaleString())}</div></div>
+              <div class="detail-summary-item"><div class="modal-label">GPS</div><div class="detail-summary-value" id="serveGps-${job.id}">Not captured</div></div>
             </div>
-            <button class="action directions" style="width:100%;margin-top:10px" type="button" onclick="captureServeGps('\${job.id}', this)">📍 Capture GPS</button>
-            <label style="margin-top:10px">Photo Evidence <span style="text-transform:none;font-weight:500">(optional)</span><input id="servePhoto-\${job.id}" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>
-            <button class="action primary" style="width:100%;margin-top:12px" type="button" onclick="saveServeAttempt('\${job.id}', this)">Save Attempt</button>
+            <button class="action directions" style="width:100%;margin-top:10px" type="button" onclick="captureServeGps('${job.id}', this)">📍 Capture GPS</button>
+            <label style="margin-top:10px">Photo Evidence <span style="text-transform:none;font-weight:500">(optional)</span><input id="servePhoto-${job.id}" type="file" accept="image/jpeg,image/png,image/webp" capture="environment"></label>
+            <button class="action primary" style="width:100%;margin-top:12px" type="button" onclick="saveServeAttempt('${job.id}', this)">Save Attempt</button>
           </div>
-        \`}
-        <div class="modal-section-title">Attempt History</div><div style="display:grid;gap:8px">\${history}</div>
-        <div id="message-\${job.id}"></div>
-      \`;
+        `}
+        <div class="modal-section-title">Attempt History</div><div style="display:grid;gap:8px">${history}</div>
+        <div id="message-${job.id}"></div>
+      `;
       document.getElementById("serveDirections-" + job.id)?.addEventListener("click", () => window.open("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(serve.service_address || ""), "_blank"));
     }
 
