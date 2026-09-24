@@ -2745,7 +2745,7 @@ window.mgSupabaseClient = client;
           <div class="modal-value">${escapeHtml(formatDate(a.attempted_at))}</div>
           ${a.notes ? '<div class="modal-value">' + escapeHtml(a.notes) + '</div>' : ''}
           <div class="modal-label" style="margin-top:5px">GPS captured${a.gps_accuracy_meters ? " • ±" + Math.round(a.gps_accuracy_meters) + " m" : ""}</div>
-          ${a.photo_path && a.is_mine ? '<button class="action directions" style="margin-top:8px" type="button" onclick="viewServeEvidence(\\'' + escapeHtml(a.photo_path) + '\\')">View Photo Evidence</button>' : ''}
+          ${a.photo_path && a.is_mine ? '<button class="action directions" style="margin-top:8px" type="button" data-serve-evidence="' + escapeHtml(a.photo_path) + '">View Photo Evidence</button>' : ''}
         </div>`).join("") : '<div class="modal-note">No attempts logged yet.</div>';
 
       jobModalContent.innerHTML = `
@@ -2797,6 +2797,7 @@ window.mgSupabaseClient = client;
         <div id="message-${job.id}"></div>
       `;
       document.getElementById("serveDirections-" + job.id)?.addEventListener("click", () => window.open("https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(serve.service_address || ""), "_blank"));
+      jobModalContent.querySelectorAll("[data-serve-evidence]").forEach(button => button.addEventListener("click", () => viewServeEvidence(button.dataset.serveEvidence)));
     }
 
     async function acceptProcessServe(jobId, button) {
