@@ -12,246 +12,260 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     :root {
       --green-dark: #064f3b;
       --green: #087455;
-      --coral: #ff665c;
-      --ink: #17221e;
-      --muted: #68756f;
-      --line: #dfe8e4;
-      --background: #f3f8f6;
-      --white: #ffffff;
+      --ink: #202824;
+      --muted: #68746f;
       --danger: #9b2929;
     }
+
+    html { min-height: 100%; }
 
     body {
       margin: 0;
       min-height: 100vh;
-      padding: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 32px 18px;
       font-family: Arial, Helvetica, sans-serif;
-      background: var(--background);
       color: var(--ink);
+      background-color: #263c34;
+      background-image:
+        linear-gradient(rgba(13, 27, 22, .22), rgba(13, 27, 22, .30)),
+        url("https://migenteexpress.com/assets/mg-express-night-mural-team.webp");
+      background-position: center;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
     }
 
     .login-card {
-      width: 100%;
-      max-width: 520px;
-      padding: 34px 28px;
-      background: var(--white);
-      border: 1px solid var(--line);
-      border-radius: 25px;
-      box-shadow: 0 14px 38px rgba(0, 0, 0, .08);
+      width: min(86vw, 390px);
+      padding: 29px 30px 32px;
+      background: #fff;
+      border-radius: 23px;
+      box-shadow: 0 20px 65px rgba(0, 0, 0, .24);
     }
 
-    .brand {
+    .logo-wrap {
+      display: flex;
+      justify-content: center;
+      margin: 0 0 20px;
+    }
+
+    .logo {
+      display: block;
+      width: 150px;
+      height: auto;
+      max-height: 115px;
+      object-fit: contain;
+    }
+
+    .portal-label {
+      margin: 0 0 22px;
       color: var(--green-dark);
-      font-size: 29px;
-      font-weight: 900;
-      line-height: 1.05;
-      margin-bottom: 17px;
-    }
-
-    .brand span {
-      color: var(--coral);
-    }
-
-    .subtitle {
-      color: var(--muted);
-      font-size: 18px;
-      line-height: 1.4;
-      margin-bottom: 28px;
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      font-weight: 800;
+      text-align: center;
     }
 
     h1 {
-      margin: 0 0 26px;
-      font-size: 43px;
-      line-height: 1;
+      margin: 0 0 8px;
+      font-size: 27px;
+      font-weight: 700;
+      letter-spacing: -.03em;
+    }
+
+    .subtitle {
+      margin: 0 0 24px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
     }
 
     label {
       display: block;
-      margin: 17px 0 7px;
-      font-weight: 800;
+      margin: 0 0 6px;
+      font-size: 16px;
+      font-weight: 500;
     }
 
     input {
+      display: block;
       width: 100%;
-      min-height: 58px;
-      padding: 14px 15px;
-      border: 1px solid #ccd8d3;
-      border-radius: 14px;
+      height: 49px;
+      padding: 10px 12px;
+      border: 1px solid #cdd4d4;
+      border-radius: 7px;
       background: white;
       color: var(--ink);
-      font-size: 17px;
+      font: inherit;
+      font-size: 16px;
       outline: none;
     }
 
     input:focus {
       border-color: var(--green);
-      box-shadow: 0 0 0 3px rgba(8, 116, 85, .12);
+      box-shadow: 0 0 0 3px rgba(8, 116, 85, .14);
     }
 
-    .password-wrap {
-      position: relative;
-    }
+    .field { margin-bottom: 15px; }
 
-    .password-wrap input {
-      padding-right: 85px;
-    }
+    .password-wrap { position: relative; }
+
+    .password-wrap input { padding-right: 65px; }
 
     .show-password {
       position: absolute;
-      top: 50%;
       right: 8px;
+      top: 50%;
       transform: translateY(-50%);
+      padding: 8px 6px;
       border: 0;
-      border-radius: 10px;
-      padding: 9px 10px;
-      background: #edf5f2;
+      background: transparent;
+      font-size: 12px;
       color: var(--green-dark);
-      font-weight: 800;
-    }
-
-    .sign-in {
-      width: 100%;
-      min-height: 58px;
-      margin-top: 25px;
-      border: 0;
-      border-radius: 14px;
-      background: var(--green);
-      color: white;
-      font-size: 19px;
-      font-weight: 900;
+      font-weight: 700;
       cursor: pointer;
     }
 
-    .sign-in:disabled {
-      opacity: .65;
-      cursor: default;
+    .sign-in {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 137px;
+      min-height: 48px;
+      margin-top: 2px;
+      padding: 8px 18px;
+      border: 1.5px solid var(--green);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--green);
+      font: inherit;
+      font-size: 21px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: color .15s ease, background .15s ease;
     }
+
+    .sign-in:hover,
+    .sign-in:focus-visible {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .sign-in:disabled { opacity: .65; cursor: default; }
 
     .message {
       display: none;
-      margin-top: 18px;
-      padding: 14px;
-      border-radius: 12px;
-      line-height: 1.4;
+      margin-top: 16px;
+      padding: 12px 13px;
+      border-radius: 9px;
+      font-size: 13px;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
     }
 
-    .message.info {
-      display: block;
-      background: #edf7f3;
-      color: #06543e;
-    }
-
-    .message.error {
-      display: block;
-      background: #fff0f0;
-      color: var(--danger);
-    }
+    .message.info { display: block; background: #eaf7f0; color: #07583f; }
+    .message.error { display: block; background: #fff0f0; color: var(--danger); }
 
     .help {
-      margin-top: 24px;
+      margin: 23px 0 0;
+      font-size: 12px;
       color: var(--muted);
       text-align: center;
       line-height: 1.5;
     }
 
-    .driver-only {
-      margin-top: 20px;
-      padding: 13px;
-      border-radius: 12px;
-      background: #f6faf8;
-      color: var(--muted);
-      text-align: center;
-      font-size: 14px;
+    @media (max-width: 600px) {
+      body {
+        background-image:
+          linear-gradient(rgba(13, 27, 22, .20), rgba(13, 27, 22, .29)),
+          url("https://migenteexpress.com/assets/field-photo-01-v2.jpg");
+        background-position: center center;
+        background-attachment: scroll;
+      }
+      .login-card {
+        width: min(86vw, 365px);
+        padding: 26px 25px 29px;
+      }
+      .logo { width: 138px; }
     }
 
-    @media (max-width: 500px) {
-      body {
-        align-items: flex-start;
-        padding: 20px 15px;
-      }
+    @media (max-height: 640px) {
+      body { padding-top: 18px; padding-bottom: 18px; }
+      .login-card { padding-top: 18px; padding-bottom: 20px; }
+      .logo { width: 115px; }
+      .portal-label { margin-bottom: 15px; }
+      .subtitle { margin-bottom: 15px; }
+    }
 
-      .login-card {
-        margin-top: 40px;
-        padding: 30px 23px;
-      }
-
-      h1 {
-        font-size: 39px;
-      }
+    @media (prefers-reduced-motion: reduce) {
+      .sign-in { transition: none; }
     }
   </style>
 </head>
 
+
 <body>
   <main class="login-card">
-    <div class="brand">
-      MG <span>EXPRESS</span> DRIVER
+    <div class="logo-wrap">
+      <img
+        class="logo"
+        src="https://migenteexpress.com/assets/mg-express-logo-2026.jpg"
+        alt="MG Express"
+      >
     </div>
 
-    <div class="subtitle">
-      Secure access to assigned jobs, delivery photos and earnings.
-    </div>
-
-    <h1>Driver Sign In</h1>
+    <p class="portal-label">Driver Portal</p>
+    <h1>Login</h1>
+    <p class="subtitle">Sign in to view your deliveries and earnings.</p>
 
     <form id="loginForm">
-      <label for="email">Email</label>
-
-      <input
-        id="email"
-        type="email"
-        autocomplete="email"
-        required
-      >
-
-      <label for="password">Password</label>
-
-      <div class="password-wrap">
+      <div class="field">
+        <label for="email">Email</label>
         <input
-          id="password"
-          type="password"
-          autocomplete="current-password"
+          id="email"
+          type="email"
+          inputmode="email"
+          autocomplete="email"
           required
         >
+      </div>
 
-        <button
-          class="show-password"
-          id="showPasswordButton"
-          type="button"
-        >
-          Show
-        </button>
+      <div class="field">
+        <label for="password">Password</label>
+        <div class="password-wrap">
+          <input
+            id="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          >
+          <button
+            class="show-password"
+            id="showPasswordButton"
+            type="button"
+            aria-label="Show password"
+          >Show</button>
+        </div>
       </div>
 
       <button
         class="sign-in"
         id="signInButton"
         type="submit"
-      >
-        Sign In
-      </button>
+      >Sign In</button>
     </form>
 
-    <div id="message" class="message"></div>
-
-    <div class="help">
-      Need help signing in?<br>
-      Contact MG Express Dispatch.
-    </div>
-
-    <div class="driver-only">
-      This portal is for MG Express drivers only.
-    </div>
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+    <p class="help">Need access? Contact MG Express Dispatch.</p>
   </main>
 
   <script>
