@@ -142,6 +142,78 @@
     body.mg-menu-open {
       overflow: hidden;
     }
+
+    /* Match the compact dispatch navigation on phones; keep desktop as-is. */
+    @media (max-width:720px) {
+      .mg-side-menu {
+        width:min(92vw,390px);
+        max-width:100vw;
+        height:100dvh;
+        overflow:hidden;
+        border-radius:17px 0 0 17px;
+      }
+      .mg-menu-header {
+        flex:0 0 auto;
+        min-height:79px;
+        padding:16px 59px 14px 15px;
+      }
+      .mg-menu-brand {font-size:19px;line-height:1.15;white-space:nowrap;}
+      .mg-menu-user {
+        margin-top:5px;
+        font-size:11px;
+        line-height:1.2;
+        max-height:27px;
+        overflow:hidden;
+      }
+      .mg-menu-close {
+        width:44px;height:44px;top:13px;right:12px;
+        border-radius:12px;
+      }
+      .mg-menu-links {
+        flex:1 1 auto;
+        min-height:0;
+        display:grid;
+        grid-template-columns:repeat(2,minmax(0,1fr));
+        grid-auto-rows:minmax(62px,max-content);
+        align-content:start;
+        gap:8px;
+        padding:12px;
+        background:#f5f9f7;
+        overscroll-behavior:contain;
+      }
+      .mg-menu-link {
+        min-width:0;
+        min-height:62px;
+        margin:0;
+        padding:9px;
+        border-radius:12px;
+        border:1px solid #e0eae5;
+        background:white;
+        display:flex;
+        align-items:center;
+        gap:7px;
+        color:#203d30;
+        font-size:13px;
+        line-height:1.2;
+        overflow-wrap:anywhere;
+      }
+      .mg-menu-link.active {
+        border-color:#c6e4d6;
+        background:#e7f5ef;
+        color:#087455;
+      }
+      .mg-menu-icon {width:23px;flex:0 0 23px;font-size:20px;}
+      .mg-menu-footer {
+        flex:0 0 auto;
+        margin-top:auto;
+        padding:10px 12px max(11px,env(safe-area-inset-bottom));
+      }
+      .mg-menu-signout {min-height:46px;font-size:14px;border-radius:12px;}
+    }
+    @media (max-width:350px) {
+      .mg-menu-links {gap:6px;padding:9px;}
+      .mg-menu-link {font-size:12px;padding:7px;}
+    }
   `;
 
   document.head.appendChild(menuStyles);
