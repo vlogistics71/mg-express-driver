@@ -381,4 +381,11 @@
     document.getElementById("mgMenuUser").textContent =
       details.name || details.email || "MG Express Driver";
   });
+  // Compact pages scroll inside panels; restore Android swipe-to-refresh.
+  if (!document.querySelector('script[data-mg-pull-refresh]')) {
+    const refreshScript = document.createElement("script");
+    refreshScript.src = "/mobile-pull-refresh.js?v=20261113-pull-v1";
+    refreshScript.dataset.mgPullRefresh = "true";
+    document.body.appendChild(refreshScript);
+  }
 })();
